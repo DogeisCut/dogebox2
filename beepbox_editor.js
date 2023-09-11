@@ -248,6 +248,21 @@ var beepbox = (function (exports) {
         { name: "13×", mult: 13.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "16×", mult: 16.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "20×", mult: 20.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-1×", mult: -1.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-~1×", mult: -1.0, hzOffset: 1.5, amplitudeSign: -1.0 },
+        { name: "-2×", mult: -2.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-~2×", mult: -2.0, hzOffset: -1.3, amplitudeSign: -1.0 },
+        { name: "-3×", mult: -3.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-4×", mult: -4.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-5×", mult: -5.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-6×", mult: -6.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-7×", mult: -7.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-8×", mult: -8.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-9×", mult: -9.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-11×", mult: -11.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-13×", mult: -13.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-16×", mult: -16.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-20×", mult: -20.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
     Config.envelopes = toNameMap([
         { name: "none", type: 1, speed: 0.0 },
@@ -365,6 +380,7 @@ var beepbox = (function (exports) {
         { name: "pulse width", samples: generateSquareWave() },
         { name: "ramp", samples: generateSawWave(true) },
         { name: "trapezoid", samples: generateTrapezoidWave(2) },
+        { name: "white noise", samples: getDrumWave(1, null, null) },
     ]);
     Config.pwmOperatorWaves = toNameMap([
         { name: "1%", samples: generateSquareWave(0.01) },
@@ -1020,6 +1036,7 @@ var beepbox = (function (exports) {
                 { name: "tom-tom", midiProgram: 116, isNoise: true, midiSubharmonicOctaves: -1, settings: { "type": "spectrum", "effects": "reverb", "transition": "hard fade", "chord": "strum", "filterCutoffHz": 2000, "filterResonance": 14, "filterEnvelope": "twang 1", "spectrum": [100, 29, 14, 0, 0, 86, 14, 43, 29, 86, 29, 14, 29, 57, 43, 43, 43, 43, 57, 43, 43, 43, 29, 57, 43, 43, 43, 43, 43, 43] } },
                 { name: "metal pipe", midiProgram: 117, isNoise: true, midiSubharmonicOctaves: -1.5, settings: { "type": "spectrum", "effects": "reverb", "transition": "hard fade", "chord": "strum", "filterCutoffHz": 8000, "filterResonance": 14, "filterEnvelope": "twang 2", "spectrum": [29, 43, 86, 43, 43, 43, 43, 43, 100, 29, 14, 14, 100, 14, 14, 0, 0, 0, 0, 0, 14, 29, 29, 14, 0, 0, 14, 29, 0, 0] } },
                 { name: "synth kick", midiProgram: 47, settings: { "type": "FM", "eqFilter": [], "effects": [], "transition": "normal", "fadeInSeconds": 0, "fadeOutTicks": -6, "chord": "simultaneous", "algorithm": "1←(2 3 4)", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "8×", "amplitude": 15 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }], "envelopes": [{ "target": "operatorFrequency", "envelope": "twang 1", "index": 0 }, { "target": "noteVolume", "envelope": "twang 2" }] } },
+                { name: "synth kick 2", midiProgram: 47, isNoise: true, settings: { "type": "FM", "eqFilter": [], "effects": [], "transition": "normal", "fadeInSeconds": 0, "fadeOutTicks": -6, "chord": "simultaneous", "algorithm": "1←(2 3 4)", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "8×", "amplitude": 15 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }], "envelopes": [{ "target": "operatorFrequency", "envelope": "twang 1", "index": 0 }, { "target": "noteVolume", "envelope": "twang 2" }, { "target": "noteVolume", "envelope": "punch" }] } },
             ])
         },
         {
@@ -16346,6 +16363,7 @@ li.select2-results__option[role=group] > strong:hover {
                 const type = selectWeightedRandom([
                     { item: 2, weight: 1 },
                     { item: 3, weight: 3 },
+                    { item: 1, weight: 2 },
                 ]);
                 instrument.preset = instrument.type = type;
                 instrument.fadeIn = (Math.random() < 0.8) ? 0 : selectCurvedDistribution(0, Config.fadeInRange - 1, 0, 2);
@@ -16498,6 +16516,133 @@ li.select2-results__option[role=group] > strong:hover {
                                 instrument.spectrumWave.spectrum[i] = Math.round(spectrum[i]);
                             }
                             instrument.spectrumWave.markCustomWaveDirty();
+                        }
+                        break;
+                    case 1:
+                        {
+                            instrument.algorithm = (Math.random() * Config.algorithms.length) | 0;
+                            instrument.feedbackType = (Math.random() * Config.feedbacks.length) | 0;
+                            const algorithm = Config.algorithms[instrument.algorithm];
+                            for (let i = 0; i < algorithm.carrierCount; i++) {
+                                instrument.operators[i].frequency = selectCurvedDistribution(0, Config.operatorFrequencies.length - 1, 0, 3);
+                                instrument.operators[i].amplitude = selectCurvedDistribution(0, Config.operatorAmplitudeMax, Config.operatorAmplitudeMax - 1, 2);
+                                instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
+                                    { item: "sine", weight: 3 },
+                                    { item: "triangle", weight: 4 },
+                                    { item: "sawtooth", weight: 10 },
+                                    { item: "pulse width", weight: 4 },
+                                    { item: "ramp", weight: 10 },
+                                    { item: "trapezoid", weight: 6 },
+                                    { item: "white noise", weight: 10 },
+                                ])].index;
+                                if (instrument.operators[i].waveform == 3) {
+                                    instrument.operators[i].pulseWidth = selectWeightedRandom([
+                                        { item: 0, weight: 3 },
+                                        { item: 1, weight: 5 },
+                                        { item: 2, weight: 7 },
+                                        { item: 3, weight: 10 },
+                                        { item: 4, weight: 15 },
+                                        { item: 5, weight: 25 },
+                                        { item: 6, weight: 15 },
+                                        { item: 7, weight: 10 },
+                                        { item: 8, weight: 7 },
+                                        { item: 9, weight: 5 },
+                                        { item: 9, weight: 3 },
+                                    ]);
+                                }
+                            }
+                            for (let i = algorithm.carrierCount; i < Config.operatorCount; i++) {
+                                instrument.operators[i].frequency = selectCurvedDistribution(3, Config.operatorFrequencies.length - 1, 0, 3);
+                                instrument.operators[i].amplitude = (Math.pow(Math.random(), 2) * Config.operatorAmplitudeMax) | 0;
+                                if (instrument.envelopeCount < Config.maxEnvelopeCount && Math.random() < 0.4) {
+                                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorAmplitude"].index, i, Config.envelopes.dictionary[selectWeightedRandom([
+                                        { item: "punch", weight: 1 },
+                                        { item: "flare 1", weight: 1 },
+                                        { item: "flare 2", weight: 1 },
+                                        { item: "flare 3", weight: 1 },
+                                        { item: "twang 1", weight: 1 },
+                                        { item: "twang 2", weight: 1 },
+                                        { item: "twang 3", weight: 1 },
+                                        { item: "swell 1", weight: 1 },
+                                        { item: "swell 2", weight: 1 },
+                                        { item: "swell 3", weight: 1 },
+                                        { item: "tremolo1", weight: 2 },
+                                        { item: "tremolo2", weight: 2 },
+                                        { item: "tremolo3", weight: 2 },
+                                        { item: "tremolo4", weight: 2 },
+                                        { item: "tremolo5", weight: 2 },
+                                        { item: "tremolo6", weight: 2 },
+                                        { item: "decay 1", weight: 2 },
+                                        { item: "decay 2", weight: 2 },
+                                        { item: "decay 3", weight: 2 },
+                                    ])].index);
+                                    instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
+                                        { item: "sine", weight: 3 },
+                                        { item: "triangle", weight: 4 },
+                                        { item: "sawtooth", weight: 10 },
+                                        { item: "pulse width", weight: 4 },
+                                        { item: "ramp", weight: 10 },
+                                        { item: "trapezoid", weight: 6 },
+                                        { item: "white noise", weight: 10 },
+                                    ])].index;
+                                    if (instrument.operators[i].waveform == 3) {
+                                        instrument.operators[i].pulseWidth = selectWeightedRandom([
+                                            { item: 0, weight: 3 },
+                                            { item: 1, weight: 5 },
+                                            { item: 2, weight: 7 },
+                                            { item: 3, weight: 10 },
+                                            { item: 4, weight: 15 },
+                                            { item: 5, weight: 25 },
+                                            { item: 6, weight: 15 },
+                                            { item: 7, weight: 10 },
+                                            { item: 8, weight: 7 },
+                                            { item: 9, weight: 5 },
+                                            { item: 9, weight: 3 },
+                                        ]);
+                                    }
+                                }
+                                if (instrument.envelopeCount < Config.maxEnvelopeCount && Math.random() < 0.05) {
+                                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorFrequency"].index, i, Config.envelopes.dictionary[selectWeightedRandom([
+                                        { item: "punch", weight: 2 },
+                                        { item: "flare 1", weight: 2 },
+                                        { item: "flare 2", weight: 4 },
+                                        { item: "flare 3", weight: 16 },
+                                        { item: "twang 1", weight: 1 },
+                                        { item: "twang 2", weight: 4 },
+                                        { item: "twang 3", weight: 16 },
+                                        { item: "swell 1", weight: 2 },
+                                        { item: "swell 2", weight: 4 },
+                                        { item: "swell 3", weight: 16 },
+                                        { item: "decay 1", weight: 4 },
+                                        { item: "decay 2", weight: 16 },
+                                        { item: "decay 3", weight: 16 },
+                                    ])].index);
+                                }
+                            }
+                            instrument.feedbackAmplitude = (Math.pow(Math.random(), 3) * Config.operatorAmplitudeMax) | 0;
+                            if (instrument.envelopeCount < Config.maxEnvelopeCount && Math.random() < 0.4) {
+                                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["feedbackAmplitude"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
+                                    { item: "punch", weight: 1 },
+                                    { item: "flare 1", weight: 1 },
+                                    { item: "flare 2", weight: 1 },
+                                    { item: "flare 3", weight: 1 },
+                                    { item: "twang 1", weight: 1 },
+                                    { item: "twang 2", weight: 1 },
+                                    { item: "twang 3", weight: 1 },
+                                    { item: "swell 1", weight: 1 },
+                                    { item: "swell 2", weight: 1 },
+                                    { item: "swell 3", weight: 1 },
+                                    { item: "tremolo1", weight: 2 },
+                                    { item: "tremolo2", weight: 2 },
+                                    { item: "tremolo3", weight: 2 },
+                                    { item: "tremolo4", weight: 2 },
+                                    { item: "tremolo5", weight: 2 },
+                                    { item: "tremolo6", weight: 2 },
+                                    { item: "decay 1", weight: 2 },
+                                    { item: "decay 2", weight: 2 },
+                                    { item: "decay 3", weight: 2 },
+                                ])].index);
+                            }
                         }
                         break;
                     default: throw new Error("Unhandled noise instrument type in random generator.");
@@ -28055,6 +28200,7 @@ You should be redirected to the song at:<br /><br />
             menu.appendChild(option$7({ value: 2 }, EditorConfig.valueToPreset(2).name));
             menu.appendChild(option$7({ value: 3 }, EditorConfig.valueToPreset(3).name));
             menu.appendChild(option$7({ value: 4 }, EditorConfig.valueToPreset(4).name));
+            menu.appendChild(option$7({ value: 1 }, EditorConfig.valueToPreset(1).name));
         }
         else {
             menu.appendChild(option$7({ value: 0 }, EditorConfig.valueToPreset(0).name));

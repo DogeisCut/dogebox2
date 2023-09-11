@@ -248,6 +248,21 @@ var beepbox = (function (exports) {
         { name: "13×", mult: 13.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "16×", mult: 16.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "20×", mult: 20.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-1×", mult: -1.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-~1×", mult: -1.0, hzOffset: 1.5, amplitudeSign: -1.0 },
+        { name: "-2×", mult: -2.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-~2×", mult: -2.0, hzOffset: -1.3, amplitudeSign: -1.0 },
+        { name: "-3×", mult: -3.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-4×", mult: -4.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-5×", mult: -5.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-6×", mult: -6.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-7×", mult: -7.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-8×", mult: -8.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-9×", mult: -9.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-11×", mult: -11.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-13×", mult: -13.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-16×", mult: -16.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "-20×", mult: -20.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
     Config.envelopes = toNameMap([
         { name: "none", type: 1, speed: 0.0 },
@@ -365,6 +380,7 @@ var beepbox = (function (exports) {
         { name: "pulse width", samples: generateSquareWave() },
         { name: "ramp", samples: generateSawWave(true) },
         { name: "trapezoid", samples: generateTrapezoidWave(2) },
+        { name: "white noise", samples: getDrumWave(1, null, null) },
     ]);
     Config.pwmOperatorWaves = toNameMap([
         { name: "1%", samples: generateSquareWave(0.01) },
@@ -1017,6 +1033,7 @@ var beepbox = (function (exports) {
                 { name: "tom-tom", midiProgram: 116, isNoise: true, midiSubharmonicOctaves: -1, settings: { "type": "spectrum", "effects": "reverb", "transition": "hard fade", "chord": "strum", "filterCutoffHz": 2000, "filterResonance": 14, "filterEnvelope": "twang 1", "spectrum": [100, 29, 14, 0, 0, 86, 14, 43, 29, 86, 29, 14, 29, 57, 43, 43, 43, 43, 57, 43, 43, 43, 29, 57, 43, 43, 43, 43, 43, 43] } },
                 { name: "metal pipe", midiProgram: 117, isNoise: true, midiSubharmonicOctaves: -1.5, settings: { "type": "spectrum", "effects": "reverb", "transition": "hard fade", "chord": "strum", "filterCutoffHz": 8000, "filterResonance": 14, "filterEnvelope": "twang 2", "spectrum": [29, 43, 86, 43, 43, 43, 43, 43, 100, 29, 14, 14, 100, 14, 14, 0, 0, 0, 0, 0, 14, 29, 29, 14, 0, 0, 14, 29, 0, 0] } },
                 { name: "synth kick", midiProgram: 47, settings: { "type": "FM", "eqFilter": [], "effects": [], "transition": "normal", "fadeInSeconds": 0, "fadeOutTicks": -6, "chord": "simultaneous", "algorithm": "1←(2 3 4)", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "8×", "amplitude": 15 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }], "envelopes": [{ "target": "operatorFrequency", "envelope": "twang 1", "index": 0 }, { "target": "noteVolume", "envelope": "twang 2" }] } },
+                { name: "synth kick 2", midiProgram: 47, isNoise: true, settings: { "type": "FM", "eqFilter": [], "effects": [], "transition": "normal", "fadeInSeconds": 0, "fadeOutTicks": -6, "chord": "simultaneous", "algorithm": "1←(2 3 4)", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "8×", "amplitude": 15 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }, { "frequency": "1×", "amplitude": 0 }], "envelopes": [{ "target": "operatorFrequency", "envelope": "twang 1", "index": 0 }, { "target": "noteVolume", "envelope": "twang 2" }, { "target": "noteVolume", "envelope": "punch" }] } },
             ])
         },
         {
