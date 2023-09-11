@@ -3211,7 +3211,6 @@ var beepbox = (function (exports) {
                         this.addEnvelope(tempEnvelope.target, tempEnvelope.index, tempEnvelope.envelope);
                     }
                 }
-                this.invertWave = instrumentObject["invertWave"];
             }
         }
         static frequencyFromPitch(pitch) {
@@ -9294,7 +9293,7 @@ var beepbox = (function (exports) {
                 const waveB = (nextWaveIntegralB - prevWaveIntegralB) / phaseDeltaB;
                 prevWaveIntegralA = nextWaveIntegralA;
                 prevWaveIntegralB = nextWaveIntegralB;
-                const inputSample = waveA + waveB * unisonSign * sign;
+                const inputSample = (waveA + waveB * unisonSign) * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -10035,7 +10034,7 @@ var beepbox = (function (exports) {
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }
         static noiseSynth(synth, bufferIndex, runLength, tone, instrumentState) {
-            const randOff = tone.noteStartPart / (Config.partsPerBeat * synth.song.beatsPerBar);
+            const randOff = Math.abs(Math.sin((tone.noteStartPart + tone.noteEndPart + tone.pitches[0] + synth.bar) * 10000));
             const sign = instrumentState.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             const wave = instrumentState.wave;
@@ -10279,7 +10278,7 @@ var beepbox = (function (exports) {
             }
         }
         static findRandomZeroCrossing(wave, waveLength, synth, tone) {
-            const randOff = tone.noteStartPart / (Config.partsPerBeat * synth.song.beatsPerBar);
+            const randOff = Math.abs(Math.sin((tone.noteStartPart + tone.noteEndPart + tone.pitches[0] + synth.bar) * 10000));
             let phase = randOff * waveLength;
             const phaseMask = waveLength - 1;
             let indexPrev = phase & phaseMask;
