@@ -759,9 +759,9 @@ var beepbox = (function (exports) {
             return null;
         }
     }
-    EditorConfig.version = "2.5";
-    EditorConfig.versionDisplayName = "JummBox " + EditorConfig.version;
-    EditorConfig.releaseNotesURL = "https://jummbus.bitbucket.io/patch_notes/" + EditorConfig.version + ".html";
+    EditorConfig.version = "1.0";
+    EditorConfig.versionDisplayName = "Dogebox2 " + EditorConfig.version;
+    EditorConfig.releaseNotesURL = "https://dogeiscut.github.io/dogebox2/patch_notes/" + EditorConfig.version + ".html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
     EditorConfig.ctrlSymbol = EditorConfig.isOnMac ? "⌘" : "Ctrl+";
     EditorConfig.ctrlName = EditorConfig.isOnMac ? "command" : "control";
@@ -1041,7 +1041,7 @@ var beepbox = (function (exports) {
                 { name: "theremin", midiProgram: 40, settings: { "type": "harmonics", "eqFilter": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.7071 }], "effects": ["vibrato", "reverb"], "vibrato": "heavy", "reverb": 33, "transition": "slide in pattern", "fadeInSeconds": 0.0263, "fadeOutTicks": -6, "chord": "simultaneous", "harmonics": [100, 71, 57, 43, 29, 29, 14, 14, 14, 14, 14, 14, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "unison": "none", "envelopes": [] } },
                 { name: "sonar ping", midiProgram: 121, settings: { "type": "spectrum", "eqFilter": [], "effects": ["note filter", "reverb"], "noteFilter": [{ "type": "low-pass", "cutoffHz": 1681.79, "linearGain": 0.5 }], "reverb": 33, "transition": "normal", "fadeInSeconds": 0.0125, "fadeOutTicks": 72, "chord": "simultaneous", "spectrum": [100, 43, 29, 29, 14, 14, 14, 14, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "envelopes": [{ "target": "noteFilterAllFreqs", "envelope": "twang 2" }] } },
             ])
-        },
+        }
     ]);
 
     function scaleElementsByFactor(array, factor) {
@@ -2758,6 +2758,7 @@ var beepbox = (function (exports) {
                 envelopes.push(this.envelopes[i].toJsonObject());
             }
             instrumentObject["envelopes"] = envelopes;
+            instrumentObject["invertWave"] = this.invertWave;
             return instrumentObject;
         }
         fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, legacyGlobalReverb = 0) {
@@ -3210,6 +3211,7 @@ var beepbox = (function (exports) {
                         this.addEnvelope(tempEnvelope.target, tempEnvelope.index, tempEnvelope.envelope);
                     }
                 }
+                this.invertWave = instrumentObject["invertWave"];
             }
         }
         static frequencyFromPitch(pitch) {
@@ -3701,6 +3703,7 @@ var beepbox = (function (exports) {
                         }
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].envelope]);
                     }
+                    buffer.push(89, base64IntToCharCode[+instrument.invertWave]);
                 }
             }
             buffer.push(98);
@@ -4453,6 +4456,11 @@ var beepbox = (function (exports) {
                         {
                             const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                             instrument.stringSustain = clamp(0, Config.stringSustainRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                        }
+                        break;
+                    case 89:
+                        {
+                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].invertWave = Boolean(base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         }
                         break;
                     case 100:
@@ -6350,6 +6358,7 @@ var beepbox = (function (exports) {
             this.reverbShelfPrevInput1 = 0.0;
             this.reverbShelfPrevInput2 = 0.0;
             this.reverbShelfPrevInput3 = 0.0;
+            this.invertWave = false;
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
             this.drumsetSpectrumWaves = [];
@@ -6460,6 +6469,7 @@ var beepbox = (function (exports) {
         }
         compute(synth, instrument, samplesPerTick, roundedSamplesPerTick, tone, channelIndex, instrumentIndex) {
             this.computed = true;
+            this.invertWave = instrument.invertWave;
             this.type = instrument.type;
             this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
             this.unison = Config.unisons[instrument.unison];
@@ -9151,6 +9161,7 @@ var beepbox = (function (exports) {
             }
         }
         static chipSynth(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) {
+            const sign = instrumentState.invertWave ? -1 : 1;
             const aliases = (effectsIncludeDistortion(instrumentState.effects) && instrumentState.aliases);
             const data = synth.tempMonoInstrumentSampleBuffer;
             const wave = instrumentState.wave;
@@ -9215,6 +9226,7 @@ var beepbox = (function (exports) {
                     prevWaveIntegralB = nextWaveIntegralB;
                     inputSample = waveA + waveB * unisonSign;
                 }
+                inputSample *= sign;
                 const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample * volumeScale;
@@ -9234,6 +9246,7 @@ var beepbox = (function (exports) {
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }
         static harmonicsSynth(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) {
+            const sign = instrumentState.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             const wave = instrumentState.wave;
             const waveLength = wave.length - 1;
@@ -9281,7 +9294,7 @@ var beepbox = (function (exports) {
                 const waveB = (nextWaveIntegralB - prevWaveIntegralB) / phaseDeltaB;
                 prevWaveIntegralA = nextWaveIntegralA;
                 prevWaveIntegralB = nextWaveIntegralB;
-                const inputSample = waveA + waveB * unisonSign;
+                const inputSample = waveA + waveB * unisonSign * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -9306,10 +9319,11 @@ var beepbox = (function (exports) {
             if (pickedStringFunction == undefined) {
                 let pickedStringSource = "";
                 pickedStringSource += `
+                const sign = instrumentState.invertWave ? -1 : 1;
 				const Config = beepbox.Config;
 				const Synth = beepbox.Synth;
 				const data = synth.tempMonoInstrumentSampleBuffer;
-				
+
 				let pickedString# = tone.pickedStrings[#];
 				let allPassSample# = +pickedString#.allPassSample;
 				let allPassPrevInput# = +pickedString#.allPassPrevInput;
@@ -9330,19 +9344,19 @@ var beepbox = (function (exports) {
 				const shelfA1Delta# = +pickedString#.shelfA1Delta;
 				const shelfB0Delta# = +pickedString#.shelfB0Delta;
 				const shelfB1Delta# = +pickedString#.shelfB1Delta;
-				
+
 				let expression = +tone.expression;
 				const expressionDelta = +tone.expressionDelta;
-				
+
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unison.sign;
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
-				
+
 				const filters = tone.noteFilters;
 				const filterCount = tone.noteFilterCount|0;
 				let initialFilterInput1 = +tone.initialNoteFilterInput1;
 				let initialFilterInput2 = +tone.initialNoteFilterInput2;
 				const applyFilters = Synth.applyFilters;
-				
+
 				const stopIndex = bufferIndex + runLength;
 				for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
 					const targetSampleTime# = delayIndex# - delayLength#;
@@ -9353,29 +9367,29 @@ var beepbox = (function (exports) {
 					const prevInput# = delayLine#[lowerIndex# & delayBufferMask#];
 					const input# = delayLine#[upperIndex# & delayBufferMask#];
 					fractionalDelaySample# = fractionalDelayG# * input# + prevInput# - fractionalDelayG# * fractionalDelaySample#;
-					
+
 					allPassSample# = fractionalDelaySample# * allPassG# + allPassPrevInput# - allPassG# * allPassSample#;
 					allPassPrevInput# = fractionalDelaySample#;
-					
+
 					shelfSample# = shelfB0# * allPassSample# + shelfB1# * shelfPrevInput# - shelfA1# * shelfSample#;
 					shelfPrevInput# = allPassSample#;
-					
+
 					delayLine#[delayIndex# & delayBufferMask#] += shelfSample#;
 					delayLine#[(delayIndex# + delayResetOffset#) & delayBufferMask#] = 0.0;
 					delayIndex#++;
-					
+
 					const inputSample = (`;
                 const sampleList = [];
                 for (let voice = 0; voice < voiceCount; voice++) {
                     sampleList.push("fractionalDelaySample" + voice + (voice == 1 ? " * unisonSign" : ""));
                 }
                 pickedStringSource += sampleList.join(" + ");
-                pickedStringSource += `) * expression;
+                pickedStringSource += `) * expression * sign;
 					const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
 					initialFilterInput2 = initialFilterInput1;
 					initialFilterInput1 = inputSample;
 					data[sampleIndex] += sample;
-					
+
 					expression += expressionDelta;
 					delayLength# += delayLengthDelta#;
 					allPassG# += allPassGDelta#;
@@ -9383,7 +9397,7 @@ var beepbox = (function (exports) {
 					shelfB0# += shelfB0Delta#;
 					shelfB1# += shelfB1Delta#;
 				}
-				
+
 				// Avoid persistent denormal or NaN values in the delay buffers and filter history.
 				const epsilon = (1.0e-24);
 				if (!Number.isFinite(allPassSample#) || Math.abs(allPassSample#) < epsilon) allPassSample# = 0.0;
@@ -9402,9 +9416,9 @@ var beepbox = (function (exports) {
 				pickedString#.shelfA1 = shelfA1#;
 				pickedString#.shelfB0 = shelfB0#;
 				pickedString#.shelfB1 = shelfB1#;
-				
+
 				tone.expression = expression;
-				
+
 				synth.sanitizeFilters(filters);
 				tone.initialNoteFilterInput1 = initialFilterInput1;
 				tone.initialNoteFilterInput2 = initialFilterInput2;`;
@@ -9456,18 +9470,18 @@ var beepbox = (function (exports) {
                 effectsSource += `
 				const Config = beepbox.Config;
 				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
-				
+
 				let mixVolume = +instrumentState.mixVolume;
 				const mixVolumeDelta = +instrumentState.mixVolumeDelta;`;
                 if (usesDelays) {
                     effectsSource += `
-				
+
 				let delayInputMult = +instrumentState.delayInputMult;
 				const delayInputMultDelta = +instrumentState.delayInputMultDelta;`;
                 }
                 if (usesDistortion) {
                     effectsSource += `
-				
+
 				const distortionBaseVolume = +Config.distortionBaseVolume;
 				let distortion = instrumentState.distortion;
 				const distortionDelta = instrumentState.distortionDelta;
@@ -9487,7 +9501,7 @@ var beepbox = (function (exports) {
 				const distortionPrevOutputWeight1 = 1.0 - distortionNextOutputWeight1;
 				const distortionPrevOutputWeight2 = 1.0 - distortionNextOutputWeight2;
 				const distortionPrevOutputWeight3 = 1.0 - distortionNextOutputWeight3;
-				
+
 				let distortionFractionalInput1 = +instrumentState.distortionFractionalInput1;
 				let distortionFractionalInput2 = +instrumentState.distortionFractionalInput2;
 				let distortionFractionalInput3 = +instrumentState.distortionFractionalInput3;
@@ -9496,7 +9510,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesBitcrusher) {
                     effectsSource += `
-				
+
 				let bitcrusherPrevInput = +instrumentState.bitcrusherPrevInput;
 				let bitcrusherCurrentOutput = +instrumentState.bitcrusherCurrentOutput;
 				let bitcrusherPhase = +instrumentState.bitcrusherPhase;
@@ -9509,7 +9523,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesEqFilter) {
                     effectsSource += `
-				
+
 				let filters = instrumentState.eqFilters;
 				const filterCount = instrumentState.eqFilterCount|0;
 				let initialFilterInput1 = +instrumentState.initialEqFilterInput1;
@@ -9517,12 +9531,12 @@ var beepbox = (function (exports) {
 				const applyFilters = beepbox.Synth.applyFilters;`;
                 }
                 effectsSource += `
-				
+
 				let eqFilterVolume = +instrumentState.eqFilterVolume;
 				const eqFilterVolumeDelta = +instrumentState.eqFilterVolumeDelta;`;
                 if (usesPanning) {
                     effectsSource += `
-				
+
 				const panningMask = synth.panningDelayBufferMask >>> 0;
 				const panningDelayLine = instrumentState.panningDelayLine;
 				let panningDelayPos = instrumentState.panningDelayPos & panningMask;
@@ -9537,18 +9551,18 @@ var beepbox = (function (exports) {
                 }
                 if (usesChorus) {
                     effectsSource += `
-				
+
 				const chorusMask = synth.chorusDelayBufferMask >>> 0;
 				const chorusDelayLineL = instrumentState.chorusDelayLineL;
 				const chorusDelayLineR = instrumentState.chorusDelayLineR;
 				instrumentState.chorusDelayLineDirty = true;
 				let chorusDelayPos = instrumentState.chorusDelayPos & chorusMask;
-				
+
 				let chorusVoiceMult = +instrumentState.chorusVoiceMult;
 				const chorusVoiceMultDelta = +instrumentState.chorusVoiceMultDelta;
 				let chorusCombinedMult = +instrumentState.chorusCombinedMult;
 				const chorusCombinedMultDelta = +instrumentState.chorusCombinedMultDelta;
-				
+
 				const chorusDuration = +beepbox.Config.chorusPeriodSeconds;
 				const chorusAngle = Math.PI * 2.0 / (chorusDuration * synth.samplesPerSecond);
 				const chorusRange = synth.samplesPerSecond * beepbox.Config.chorusDelayRange;
@@ -9581,21 +9595,21 @@ var beepbox = (function (exports) {
                 }
                 if (usesEcho) {
                     effectsSource += `
-				
+
 				let echoMult = +instrumentState.echoMult;
 				const echoMultDelta = +instrumentState.echoMultDelta;
-				
+
 				const echoDelayLineL = instrumentState.echoDelayLineL;
 				const echoDelayLineR = instrumentState.echoDelayLineR;
 				const echoMask = (echoDelayLineL.length - 1) >>> 0;
 				instrumentState.echoDelayLineDirty = true;
-				
+
 				let echoDelayPos = instrumentState.echoDelayPos & echoMask;
 				const echoDelayOffsetStart = (echoDelayLineL.length - instrumentState.echoDelayOffsetStart) & echoMask;
 				const echoDelayOffsetEnd   = (echoDelayLineL.length - instrumentState.echoDelayOffsetEnd) & echoMask;
 				let echoDelayOffsetRatio = +instrumentState.echoDelayOffsetRatio;
 				const echoDelayOffsetRatioDelta = +instrumentState.echoDelayOffsetRatioDelta;
-				
+
 				const echoShelfA1 = +instrumentState.echoShelfA1;
 				const echoShelfB0 = +instrumentState.echoShelfB0;
 				const echoShelfB1 = +instrumentState.echoShelfB1;
@@ -9606,15 +9620,15 @@ var beepbox = (function (exports) {
                 }
                 if (usesReverb) {
                     effectsSource += `
-				
+
 				const reverbMask = Config.reverbDelayBufferMask >>> 0; //TODO: Dynamic reverb buffer size.
 				const reverbDelayLine = instrumentState.reverbDelayLine;
 				instrumentState.reverbDelayLineDirty = true;
 				let reverbDelayPos = instrumentState.reverbDelayPos & reverbMask;
-				
+
 				let reverb = +instrumentState.reverbMult;
 				const reverbDelta = +instrumentState.reverbMultDelta;
-				
+
 				const reverbShelfA1 = +instrumentState.reverbShelfA1;
 				const reverbShelfB0 = +instrumentState.reverbShelfB0;
 				const reverbShelfB1 = +instrumentState.reverbShelfB1;
@@ -9628,14 +9642,14 @@ var beepbox = (function (exports) {
 				let reverbShelfPrevInput3 = +instrumentState.reverbShelfPrevInput3;`;
                 }
                 effectsSource += `
-				
+
 				const stopIndex = bufferIndex + runLength;
 				for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
 					let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
 					tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;`;
                 if (usesDistortion) {
                     effectsSource += `
-					
+
 					const distortionReverse = 1.0 - distortion;
 					const distortionNextInput = sample * distortionDrive;
 					sample = distortionNextOutput;
@@ -9655,7 +9669,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesBitcrusher) {
                     effectsSource += `
-					
+
 					bitcrusherPhase += bitcrusherPhaseDelta;
 					if (bitcrusherPhase < 1.0) {
 						bitcrusherPrevInput = sample;
@@ -9663,17 +9677,17 @@ var beepbox = (function (exports) {
 					} else {
 						bitcrusherPhase = bitcrusherPhase % 1.0;
 						const ratio = bitcrusherPhase / bitcrusherPhaseDelta;
-						
+
 						const lerpedInput = sample + (bitcrusherPrevInput - sample) * ratio;
 						bitcrusherPrevInput = sample;
-						
+
 						const bitcrusherWrapLevel = bitcrusherFoldLevel * 4.0;
 						const wrappedSample = (((lerpedInput + bitcrusherFoldLevel) % bitcrusherWrapLevel) + bitcrusherWrapLevel) % bitcrusherWrapLevel;
 						const foldedSample = bitcrusherFoldLevel - Math.abs(bitcrusherFoldLevel * 2.0 - wrappedSample);
 						const scaledSample = foldedSample / bitcrusherScale;
 						const oldValue = bitcrusherCurrentOutput;
 						const newValue = (((scaledSample > 0 ? scaledSample + 1 : scaledSample)|0)-.5) * bitcrusherScale;
-						
+
 						sample = oldValue + (newValue - oldValue) * ratio;
 						bitcrusherCurrentOutput = newValue;
 					}
@@ -9683,19 +9697,19 @@ var beepbox = (function (exports) {
                 }
                 if (usesEqFilter) {
                     effectsSource += `
-					
+
 					const inputSample = sample;
 					sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
 					initialFilterInput2 = initialFilterInput1;
 					initialFilterInput1 = inputSample;`;
                 }
                 effectsSource += `
-					
+
 					sample *= eqFilterVolume;
 					eqFilterVolume += eqFilterVolumeDelta;`;
                 if (usesPanning) {
                     effectsSource += `
-					
+
 					panningDelayLine[panningDelayPos] = sample;
 					const panningRatioL  = panningOffsetL % 1;
 					const panningRatioR  = panningOffsetR % 1;
@@ -9715,13 +9729,13 @@ var beepbox = (function (exports) {
                 }
                 else {
                     effectsSource += `
-					
+
 					let sampleL = sample;
 					let sampleR = sample;`;
                 }
                 if (usesChorus) {
                     effectsSource += `
-					
+
 					const chorusTap0Ratio = chorusTap0Index % 1;
 					const chorusTap1Ratio = chorusTap1Index % 1;
 					const chorusTap2Ratio = chorusTap2Index % 1;
@@ -9762,7 +9776,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesEcho) {
                     effectsSource += `
-					
+
 					const echoTapStartIndex = (echoDelayPos + echoDelayOffsetStart) & echoMask;
 					const echoTapEndIndex   = (echoDelayPos + echoDelayOffsetEnd  ) & echoMask;
 					const echoTapStartL = echoDelayLineL[echoTapStartIndex];
@@ -9771,14 +9785,14 @@ var beepbox = (function (exports) {
 					const echoTapEndR   = echoDelayLineR[echoTapEndIndex];
 					const echoTapL = (echoTapStartL + (echoTapEndL - echoTapStartL) * echoDelayOffsetRatio) * echoMult;
 					const echoTapR = (echoTapStartR + (echoTapEndR - echoTapStartR) * echoDelayOffsetRatio) * echoMult;
-					
+
 					echoShelfSampleL = echoShelfB0 * echoTapL + echoShelfB1 * echoShelfPrevInputL - echoShelfA1 * echoShelfSampleL;
 					echoShelfSampleR = echoShelfB0 * echoTapR + echoShelfB1 * echoShelfPrevInputR - echoShelfA1 * echoShelfSampleR;
 					echoShelfPrevInputL = echoTapL;
 					echoShelfPrevInputR = echoTapR;
 					sampleL += echoShelfSampleL;
 					sampleR += echoShelfSampleR;
-					
+
 					echoDelayLineL[echoDelayPos] = sampleL * delayInputMult;
 					echoDelayLineR[echoDelayPos] = sampleR * delayInputMult;
 					echoDelayPos = (echoDelayPos + 1) & echoMask;
@@ -9788,7 +9802,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesReverb) {
                     effectsSource += `
-					
+
 					// Reverb, implemented using a feedback delay network with a Hadamard matrix and lowpass filters.
 					// good ratios:    0.555235 + 0.618033 + 0.818 +   1.0 = 2.991268
 					// Delay lengths:  3041     + 3385     + 4481  +  5477 = 16384 = 2^14
@@ -9826,40 +9840,40 @@ var beepbox = (function (exports) {
 					reverb += reverbDelta;`;
                 }
                 effectsSource += `
-					
+
 					outputDataL[sampleIndex] += sampleL * mixVolume;
 					outputDataR[sampleIndex] += sampleR * mixVolume;
 					mixVolume += mixVolumeDelta;`;
                 if (usesDelays) {
                     effectsSource += `
-					
+
 					delayInputMult += delayInputMultDelta;`;
                 }
                 effectsSource += `
 				}
-				
+
 				instrumentState.mixVolume = mixVolume;
 				instrumentState.eqFilterVolume = eqFilterVolume;
-				
+
 				// Avoid persistent denormal or NaN values in the delay buffers and filter history.
 				const epsilon = (1.0e-24);`;
                 if (usesDelays) {
                     effectsSource += `
-				
+
 				instrumentState.delayInputMult = delayInputMult;`;
                 }
                 if (usesDistortion) {
                     effectsSource += `
-				
+
 				instrumentState.distortion = distortion;
 				instrumentState.distortionDrive = distortionDrive;
-				
+
 				if (!Number.isFinite(distortionFractionalInput1) || Math.abs(distortionFractionalInput1) < epsilon) distortionFractionalInput1 = 0.0;
 				if (!Number.isFinite(distortionFractionalInput2) || Math.abs(distortionFractionalInput2) < epsilon) distortionFractionalInput2 = 0.0;
 				if (!Number.isFinite(distortionFractionalInput3) || Math.abs(distortionFractionalInput3) < epsilon) distortionFractionalInput3 = 0.0;
 				if (!Number.isFinite(distortionPrevInput) || Math.abs(distortionPrevInput) < epsilon) distortionPrevInput = 0.0;
 				if (!Number.isFinite(distortionNextOutput) || Math.abs(distortionNextOutput) < epsilon) distortionNextOutput = 0.0;
-				
+
 				instrumentState.distortionFractionalInput1 = distortionFractionalInput1;
 				instrumentState.distortionFractionalInput2 = distortionFractionalInput2;
 				instrumentState.distortionFractionalInput3 = distortionFractionalInput3;
@@ -9868,7 +9882,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesBitcrusher) {
                     effectsSource += `
-					
+
 				if (Math.abs(bitcrusherPrevInput) < epsilon) bitcrusherPrevInput = 0.0;
 				if (Math.abs(bitcrusherCurrentOutput) < epsilon) bitcrusherCurrentOutput = 0.0;
 				instrumentState.bitcrusherPrevInput = bitcrusherPrevInput;
@@ -9880,7 +9894,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesEqFilter) {
                     effectsSource += `
-					
+
 				synth.sanitizeFilters(filters);
 				// The filter input here is downstream from another filter so we
 				// better make sure it's safe too.
@@ -9895,7 +9909,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesPanning) {
                     effectsSource += `
-				
+
 				beepbox.Synth.sanitizeDelayLine(panningDelayLine, panningDelayPos, panningMask);
 				instrumentState.panningDelayPos = panningDelayPos;
 				instrumentState.panningVolumeL = panningVolumeL;
@@ -9905,7 +9919,7 @@ var beepbox = (function (exports) {
                 }
                 if (usesChorus) {
                     effectsSource += `
-				
+
 				beepbox.Synth.sanitizeDelayLine(chorusDelayLineL, chorusDelayPos, chorusMask);
 				beepbox.Synth.sanitizeDelayLine(chorusDelayLineR, chorusDelayPos, chorusMask);
 				instrumentState.chorusPhase = chorusPhase;
@@ -9915,13 +9929,13 @@ var beepbox = (function (exports) {
                 }
                 if (usesEcho) {
                     effectsSource += `
-				
+
 				beepbox.Synth.sanitizeDelayLine(echoDelayLineL, echoDelayPos, echoMask);
 				beepbox.Synth.sanitizeDelayLine(echoDelayLineR, echoDelayPos, echoMask);
 				instrumentState.echoDelayPos = echoDelayPos;
 				instrumentState.echoMult = echoMult;
 				instrumentState.echoDelayOffsetRatio = echoDelayOffsetRatio;
-				
+
 				if (!Number.isFinite(echoShelfSampleL) || Math.abs(echoShelfSampleL) < epsilon) echoShelfSampleL = 0.0;
 				if (!Number.isFinite(echoShelfSampleR) || Math.abs(echoShelfSampleR) < epsilon) echoShelfSampleR = 0.0;
 				if (!Number.isFinite(echoShelfPrevInputL) || Math.abs(echoShelfPrevInputL) < epsilon) echoShelfPrevInputL = 0.0;
@@ -9933,14 +9947,14 @@ var beepbox = (function (exports) {
                 }
                 if (usesReverb) {
                     effectsSource += `
-				
+
 				beepbox.Synth.sanitizeDelayLine(reverbDelayLine, reverbDelayPos        , reverbMask);
 				beepbox.Synth.sanitizeDelayLine(reverbDelayLine, reverbDelayPos +  3041, reverbMask);
 				beepbox.Synth.sanitizeDelayLine(reverbDelayLine, reverbDelayPos +  6426, reverbMask);
 				beepbox.Synth.sanitizeDelayLine(reverbDelayLine, reverbDelayPos + 10907, reverbMask);
 				instrumentState.reverbDelayPos = reverbDelayPos;
 				instrumentState.reverbMult = reverb;
-				
+
 				if (!Number.isFinite(reverbShelfSample0) || Math.abs(reverbShelfSample0) < epsilon) reverbShelfSample0 = 0.0;
 				if (!Number.isFinite(reverbShelfSample1) || Math.abs(reverbShelfSample1) < epsilon) reverbShelfSample1 = 0.0;
 				if (!Number.isFinite(reverbShelfSample2) || Math.abs(reverbShelfSample2) < epsilon) reverbShelfSample2 = 0.0;
@@ -9964,6 +9978,7 @@ var beepbox = (function (exports) {
             effectsFunction(synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState);
         }
         static pulseWidthSynth(synth, bufferIndex, roundedSamplesPerTick, tone, instrument) {
+            const sign = instrument.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             let phaseDelta = tone.phaseDeltas[0];
             const phaseDeltaScale = +tone.phaseDeltaScales[0];
@@ -10000,7 +10015,7 @@ var beepbox = (function (exports) {
                         pulseWave -= (t + t + t * t + 1) * 0.5;
                     }
                 }
-                const inputSample = pulseWave;
+                const inputSample = pulseWave * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -10020,6 +10035,8 @@ var beepbox = (function (exports) {
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }
         static noiseSynth(synth, bufferIndex, runLength, tone, instrumentState) {
+            const randOff = tone.noteStartPart / (Config.partsPerBeat * synth.song.beatsPerBar);
+            const sign = instrumentState.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             const wave = instrumentState.wave;
             let phaseDelta = +tone.phaseDeltas[0];
@@ -10028,7 +10045,7 @@ var beepbox = (function (exports) {
             const expressionDelta = +tone.expressionDelta;
             let phase = (tone.phases[0] % 1) * Config.chipNoiseLength;
             if (tone.phases[0] == 0) {
-                phase = Math.random() * Config.chipNoiseLength;
+                phase = randOff * Config.chipNoiseLength;
             }
             const phaseMask = Config.chipNoiseLength - 1;
             let noiseSample = +tone.noiseSample;
@@ -10042,7 +10059,7 @@ var beepbox = (function (exports) {
             for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
                 const waveSample = wave[phase & phaseMask];
                 noiseSample += (waveSample - noiseSample) * pitchRelativefilter;
-                const inputSample = noiseSample;
+                const inputSample = noiseSample * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -10061,6 +10078,7 @@ var beepbox = (function (exports) {
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }
         static spectrumSynth(synth, bufferIndex, runLength, tone, instrumentState) {
+            const sign = instrumentState.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             const wave = instrumentState.wave;
             const samplesInPeriod = (1 << 7);
@@ -10076,7 +10094,7 @@ var beepbox = (function (exports) {
             const applyFilters = Synth.applyFilters;
             let phase = (tone.phases[0] % 1) * Config.spectrumNoiseLength;
             if (tone.phases[0] == 0)
-                phase = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta;
+                phase = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength, synth, tone) + phaseDelta;
             const phaseMask = Config.spectrumNoiseLength - 1;
             const pitchRelativefilter = Math.min(1.0, phaseDelta);
             const stopIndex = bufferIndex + runLength;
@@ -10087,7 +10105,7 @@ var beepbox = (function (exports) {
                 const phaseRatio = phase - phaseInt;
                 waveSample += (wave[index + 1] - waveSample) * phaseRatio;
                 noiseSample += (waveSample - noiseSample) * pitchRelativefilter;
-                const inputSample = noiseSample;
+                const inputSample = noiseSample * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -10106,6 +10124,7 @@ var beepbox = (function (exports) {
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }
         static drumsetSynth(synth, bufferIndex, runLength, tone, instrumentState) {
+            const sign = instrumentState.invertWave ? -1 : 1;
             const data = synth.tempMonoInstrumentSampleBuffer;
             let wave = instrumentState.getDrumsetWave(tone.drumsetPitch);
             const referenceDelta = InstrumentState.drumsetIndexReferenceDelta(tone.drumsetPitch);
@@ -10120,7 +10139,7 @@ var beepbox = (function (exports) {
             const applyFilters = Synth.applyFilters;
             let phase = (tone.phases[0] % 1) * Config.spectrumNoiseLength;
             if (tone.phases[0] == 0)
-                phase = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta;
+                phase = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength, synth, tone) + phaseDelta;
             const phaseMask = Config.spectrumNoiseLength - 1;
             const stopIndex = bufferIndex + runLength;
             for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
@@ -10129,7 +10148,7 @@ var beepbox = (function (exports) {
                 let noiseSample = wave[index];
                 const phaseRatio = phase - phaseInt;
                 noiseSample += (wave[index + 1] - noiseSample) * phaseRatio;
-                const inputSample = noiseSample;
+                const inputSample = noiseSample * sign;
                 const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
                 initialFilterInput2 = initialFilterInput1;
                 initialFilterInput1 = inputSample;
@@ -10259,8 +10278,9 @@ var beepbox = (function (exports) {
                 }
             }
         }
-        static findRandomZeroCrossing(wave, waveLength) {
-            let phase = Math.random() * waveLength;
+        static findRandomZeroCrossing(wave, waveLength, synth, tone) {
+            const randOff = tone.noteStartPart / (Config.partsPerBeat * synth.song.beatsPerBar);
+            let phase = randOff * waveLength;
             const phaseMask = waveLength - 1;
             let indexPrev = phase & phaseMask;
             let wavePrev = wave[indexPrev];
@@ -10428,9 +10448,10 @@ var beepbox = (function (exports) {
     Synth.effectsFunctionCache = Array(1 << 7).fill(undefined);
     Synth.pickedStringFunctionCache = Array(3).fill(undefined);
     Synth.fmSourceTemplate = (`
+        const sign = instrumentState.invertWave ? -1 : 1;
 		const data = synth.tempMonoInstrumentSampleBuffer;
 		const sineWave = beepbox.Config.sineWave;
-			
+
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
 		let operator#Phase       = +((tone.phases[#] % 1) + 1000) * ` + Config.sineWaveLength + `;
 		let operator#PhaseDelta  = +tone.phaseDeltas[#] * ` + Config.sineWaveLength + `;
@@ -10443,41 +10464,41 @@ var beepbox = (function (exports) {
 		const feedbackDelta        = +tone.feedbackDelta;
         let expression = +tone.expression;
 		const expressionDelta = +tone.expressionDelta;
-		
+
 		const filters = tone.noteFilters;
 		const filterCount = tone.noteFilterCount|0;
 		let initialFilterInput1 = +tone.initialNoteFilterInput1;
 		let initialFilterInput2 = +tone.initialNoteFilterInput2;
 		const applyFilters = beepbox.Synth.applyFilters;
-		
+
 		const stopIndex = bufferIndex + roundedSamplesPerTick;
 		for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
 				// INSERT OPERATOR COMPUTATION HERE
 				const fmOutput = (/*operator#Scaled*/); // CARRIER OUTPUTS
-				
-			const inputSample = fmOutput;
+
+			const inputSample = fmOutput*sign;
 			const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
 			initialFilterInput2 = initialFilterInput1;
 			initialFilterInput1 = inputSample;
-				
+
 				feedbackMult += feedbackDelta;
 				operator#OutputMult += operator#OutputDelta;
 				operator#Phase += operator#PhaseDelta;
 			operator#PhaseDelta *= operator#PhaseDeltaScale;
-			
+
 			const output = sample * expression;
 			expression += expressionDelta;
 
 			data[sampleIndex] += output;
 			}
-			
+
 			tone.phases[#] = operator#Phase / ` + Config.sineWaveLength + `;
 			tone.phaseDeltas[#] = operator#PhaseDelta / ` + Config.sineWaveLength + `;
 			tone.operatorExpressions[#] = operator#OutputMult;
 		    tone.feedbackOutputs[#] = operator#Output;
 		    tone.feedbackMult = feedbackMult;
 		    tone.expression = expression;
-			
+
 		synth.sanitizeFilters(filters);
 		tone.initialNoteFilterInput1 = initialFilterInput1;
 		tone.initialNoteFilterInput2 = initialFilterInput2;
