@@ -328,12 +328,12 @@ var beepbox = (function (exports) {
     Config.noiseChannelCountMin = 0;
     Config.noiseChannelCountMax = 32;
     Config.modChannelCountMin = 0;
-    Config.modChannelCountMax = 24;
+    Config.modChannelCountMax = 28;
     Config.noiseInterval = 6;
     Config.pitchesPerOctave = 12;
     Config.drumCount = 12;
     Config.pitchOctaves = 10;
-    Config.modCount = 7;
+    Config.modCount = 6;
     Config.maxPitch = Config.pitchOctaves * Config.pitchesPerOctave;
     Config.maximumTonesPerChannel = Config.maxChordSize * 2;
     Config.justIntonationSemitones = [1.0 / 2.0, 8.0 / 15.0, 9.0 / 16.0, 3.0 / 5.0, 5.0 / 8.0, 2.0 / 3.0, 32.0 / 45.0, 3.0 / 4.0, 4.0 / 5.0, 5.0 / 6.0, 8.0 / 9.0, 15.0 / 16.0, 1.0, 16.0 / 15.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 45.0 / 32.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 16.0 / 9.0, 15.0 / 8.0, 2.0].map(x => Math.log2(x) * Config.pitchesPerOctave);
@@ -782,7 +782,7 @@ var beepbox = (function (exports) {
             return null;
         }
     }
-    EditorConfig.version = "1.2";
+    EditorConfig.version = "1.2.1";
     EditorConfig.versionDisplayName = "Dogebox2 " + EditorConfig.version;
     EditorConfig.releaseNotesURL = "https://dogeiscut.github.io/dogebox2/patch_notes/" + EditorConfig.version + ".html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
@@ -8580,7 +8580,7 @@ var beepbox = (function (exports) {
                 expressionReferencePitch = basePitch;
             }
             else if (instrument.type == 2) {
-                basePitch = Config.chipNoises[instrument.chipNoise].basePitch;
+                basePitch = isNoiseChannel ? Config.chipNoises[instrument.chipNoise].basePitch : basePitch + Config.chipNoises[instrument.chipNoise].basePitch - 12;
                 baseExpression = Config.noiseBaseExpression;
                 expressionReferencePitch = basePitch;
                 pitchDamping = Config.chipNoises[instrument.chipNoise].isSoft ? 24.0 : 60.0;
@@ -8918,6 +8918,7 @@ var beepbox = (function (exports) {
             if (instrument.type == 1) {
                 let sineExpressionBoost = 1.0;
                 let totalCarrierExpression = 0.0;
+                let trueBasePitch = isNoiseChannel ? 12 : basePitch;
                 let arpeggioInterval = 0;
                 const arpeggiates = chord.arpeggiates;
                 if (tone.pitchCount > 1 && arpeggiates) {
@@ -8930,8 +8931,8 @@ var beepbox = (function (exports) {
                     const pitch = tone.pitches[arpeggiates ? 0 : ((i < tone.pitchCount) ? i : ((associatedCarrierIndex < tone.pitchCount) ? associatedCarrierIndex : 0))];
                     const freqMult = Config.operatorFrequencies[instrument.operators[i].frequency].mult;
                     const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval;
-                    const pitchStart = basePitch + (pitch + intervalStart) * intervalScale + interval;
-                    const pitchEnd = basePitch + (pitch + intervalEnd) * intervalScale + interval;
+                    const pitchStart = trueBasePitch + (pitch + intervalStart) * intervalScale + interval;
+                    const pitchEnd = trueBasePitch + (pitch + intervalEnd) * intervalScale + interval;
                     const baseFreqStart = Instrument.frequencyFromPitch(pitchStart);
                     const baseFreqEnd = Instrument.frequencyFromPitch(pitchEnd);
                     const hzOffset = Config.operatorFrequencies[instrument.operators[i].frequency].hzOffset;
