@@ -83,8 +83,8 @@ var beepbox = (function (exports) {
     Config.barCountMin = 1;
     Config.barCountMax = 256;
     Config.instrumentCountMin = 1;
-    Config.layeredInstrumentCountMax = 10;
-    Config.patternInstrumentCountMax = 48;
+    Config.layeredInstrumentCountMax = 11;
+    Config.patternInstrumentCountMax = 11;
     Config.partsPerBeat = 24;
     Config.ticksPerPart = 2;
     Config.ticksPerArpeggio = 3;
@@ -190,7 +190,7 @@ var beepbox = (function (exports) {
         { name: "octave", voices: 2, spread: 6.0, offset: 6.0, expression: 0.8, sign: 1.0 },
         { name: "bowed", voices: 2, spread: 0.02, offset: 0.0, expression: 1.0, sign: -1.0 },
         { name: "piano", voices: 2, spread: 0.01, offset: 0.0, expression: 1.0, sign: 0.7 },
-        { name: "warbled", voices: 2, spread: 0.25, offset: 0.05, expression: 0.9, sign: -0.8 },
+        { name: "warbled", voices: 2, spread: 0.25, offset: 0.05, expression: 0.9, sign: -0.8 }
     ]);
     Config.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "note range", "invert wave"];
     Config.effectOrder = [2, 10, 11, 7, 8, 9, 5, 3, 4, 1, 6, 0, 12, 13];
@@ -286,6 +286,7 @@ var beepbox = (function (exports) {
         { name: "decay 1", type: 8, speed: 10.0 },
         { name: "decay 2", type: 8, speed: 7.0 },
         { name: "decay 3", type: 8, speed: 4.0 },
+        { name: "clap", type: 9, speed: 1.0 },
     ]);
     Config.feedbacks = toNameMap([
         { name: "1⟲", indices: [[1], [], [], []] },
@@ -322,8 +323,8 @@ var beepbox = (function (exports) {
     Config.harmonicsWavelength = 1 << 11;
     Config.pulseWidthRange = 50;
     Config.pulseWidthStepPower = 0.5;
-    Config.pitchChannelCountMin = 0;
-    Config.pitchChannelCountMax = 80;
+    Config.pitchChannelCountMin = 1;
+    Config.pitchChannelCountMax = 40;
     Config.noiseChannelCountMin = 0;
     Config.noiseChannelCountMax = 32;
     Config.modChannelCountMin = 0;
@@ -332,7 +333,7 @@ var beepbox = (function (exports) {
     Config.pitchesPerOctave = 12;
     Config.drumCount = 12;
     Config.pitchOctaves = 10;
-    Config.modCount = 8;
+    Config.modCount = 7;
     Config.maxPitch = Config.pitchOctaves * Config.pitchesPerOctave;
     Config.maximumTonesPerChannel = Config.maxChordSize * 2;
     Config.justIntonationSemitones = [1.0 / 2.0, 8.0 / 15.0, 9.0 / 16.0, 3.0 / 5.0, 5.0 / 8.0, 2.0 / 3.0, 32.0 / 45.0, 3.0 / 4.0, 4.0 / 5.0, 5.0 / 6.0, 8.0 / 9.0, 15.0 / 16.0, 1.0, 16.0 / 15.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 45.0 / 32.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 16.0 / 9.0, 15.0 / 8.0, 2.0].map(x => Math.log2(x) * Config.pitchesPerOctave);
@@ -784,7 +785,7 @@ var beepbox = (function (exports) {
             return null;
         }
     }
-    EditorConfig.version = "1.1";
+    EditorConfig.version = "1.2";
     EditorConfig.versionDisplayName = "Dogebox2 " + EditorConfig.version;
     EditorConfig.releaseNotesURL = "https://dogeiscut.github.io/dogebox2/patch_notes/" + EditorConfig.version + ".html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
@@ -4424,6 +4425,9 @@ var beepbox = (function (exports) {
 				--input-box-outline: #444444;
 				--mute-button-normal: #ff00ff;
 				--mute-button-mod: #00ffff;
+				--mod-label-primary: #282840;
+				--mod-label-secondary-text: rgb(87, 86, 120);
+				--mod-label-primary-text: white;
 				--pitch1-secondary-channel: #f1c40f;
 				--pitch1-primary-channel: #fbff8e;
 				--pitch1-secondary-note: #f9c74f;
@@ -4500,6 +4504,8 @@ var beepbox = (function (exports) {
 				--mod4-primary-channel: #82fffb;
 				--mod4-secondary-note: #92ffff;
 				--mod4-primary-note: #b2fffb;
+				--disabled-note-primary: #c6c6c6;
+				--disabled-note-secondary: #8c8c8c;
 				}
 			`,
     };
@@ -11724,6 +11730,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const attack = 0.25 / Math.sqrt(envelope.speed);
                     return time < attack ? time / attack : 1.0 / (1.0 + (time - attack) * envelope.speed);
                 case 8: return Math.pow(2, -envelope.speed * time);
+                case 9: return Math.max(0, Math.min(1, 1.0 - Math.abs(time - 0.5) * 2));
                 default: throw new Error("Unrecognized operator envelope type.");
             }
         }
@@ -28846,6 +28853,18 @@ You should be redirected to the song at:<br /><br />
                     SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
+            this._instrumentExportButton = button$e({ style: "max-width:86px; width: 86px;", class: "exportInstrumentButton" }, [
+                "Export",
+                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
+                    SVG.path({ d: "M200-120v-40h560v40H200Zm279.231-150.769L254.615-568.462h130.769V-840h188.462v271.538h130.77L479.231-270.769Zm0-65.385 142.923-191.538h-88.308V-800H425.385v272.308h-88.308l142.154 191.538ZM480-527.692Z", fill: "currentColor" }),
+                ]),
+            ]);
+            this._instrumentImportButton = button$e({ style: "max-width:86px;", class: "importInstrumentButton" }, [
+                "Import",
+                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
+                    SVG.path({ d: "M200-120v-40h560v40H200Zm185.384-150.769v-271.539H254.615L480-840l224.616 297.692h-130.77v271.539H385.384Zm40.001-40h108.461v-272.308h88.308L480-774.615 337.077-583.077h88.308v272.308ZM480-583.077Z", fill: "currentColor" }),
+                ]),
+            ]);
             this._customWaveDrawCanvas = new CustomChipCanvas(canvas({ width: 128, height: 52, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" }), this._doc, (newArray) => new ChangeCustomWave(this._doc, newArray));
             this._customWavePresetDrop = buildHeaderedOptions("Load Preset", select$7({ style: "width: 50%; height:1.5em; text-align: center; text-align-last: center;" }), Config.chipWaves.map(wave => wave.name));
             this._customWaveZoom = button$e({ style: "margin-left:0.5em; height:1.5em; max-width: 20px;", onclick: () => this._openPrompt("customChipSettings") }, "+");
@@ -28859,6 +28878,7 @@ You should be redirected to the song at:<br /><br />
             this._addEnvelopeButton = button$e({ type: "button", class: "add-envelope" });
             this._customInstrumentSettingsGroup = div$e({ class: "editor-controls" }, this._panSliderRow, this._panDropdownGroup, this._chipWaveSelectRow, this._chipNoiseSelectRow, this._customWaveDraw, this._eqFilterTypeRow, this._eqFilterRow, this._eqFilterSimpleCutRow, this._eqFilterSimplePeakRow, this._fadeInOutRow, this._algorithmSelectRow, this._phaseModGroup, this._feedbackRow1, this._feedbackRow2, this._spectrumRow, this._harmonicsRow, this._drumsetGroup, this._pulseWidthRow, this._stringSustainRow, this._unisonSelectRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("effects") }, "Effects")), div$e({ class: "effects-menu" }, this._effectsSelect)), this._transitionRow, this._transitionDropdownGroup, this._chordSelectRow, this._chordDropdownGroup, this._pitchShiftRow, this._detuneSliderRow, this._vibratoSelectRow, this._vibratoDropdownGroup, this._noteFilterTypeRow, this._noteFilterRow, this._noteFilterSimpleCutRow, this._noteFilterSimplePeakRow, this._distortionRow, this._aliasingRow, this._bitcrusherQuantizationRow, this._bitcrusherFreqRow, this._chorusRow, this._echoSustainRow, this._echoDelayRow, this._reverbRow, this._upperNoteLimitRow, this._lowerNoteLimitRow, this._invertWaveRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("envelopes") }, "Envelopes")), this._addEnvelopeButton), this._envelopeEditor.container);
             this._instrumentCopyGroup = div$e({ class: "editor-controls" }, div$e({ class: "selectRow" }, this._instrumentCopyButton, this._instrumentPasteButton));
+            this._instrumentExportGroup = div$e({ class: "editor-controls" }, div$e({ class: "selectRow" }, this._instrumentExportButton, this._instrumentImportButton));
             this._instrumentSettingsTextRow = div$e({ id: "instrumentSettingsText", style: `padding: 3px 0; max-width: 15em; text-align: center; color: ${ColorConfig.secondaryText};` }, "Instrument Settings");
             this._instrumentTypeSelectRow = div$e({ class: "selectRow", id: "typeSelectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("instrumentType") }, "Type:"), div$e(div$e({ class: "pitchSelect" }, this._pitchedPresetSelect), div$e({ class: "drumSelect" }, this._drumPresetSelect)));
             this._instrumentSettingsGroup = div$e({ class: "editor-controls" }, this._instrumentSettingsTextRow, this._instrumentsButtonRow, this._instrumentTypeSelectRow, this._instrumentVolumeSliderRow, this._customInstrumentSettingsGroup);
@@ -29058,6 +29078,7 @@ You should be redirected to the song at:<br /><br />
                     this._instrumentVolumeSliderRow.style.display = "";
                     this._instrumentTypeSelectRow.style.setProperty("display", "");
                     this._instrumentSettingsGroup.appendChild(this._instrumentCopyGroup);
+                    this._instrumentSettingsGroup.appendChild(this._instrumentExportGroup);
                     this._instrumentSettingsGroup.insertBefore(this._instrumentsButtonRow, this._instrumentSettingsGroup.firstChild);
                     this._instrumentSettingsGroup.insertBefore(this._instrumentSettingsTextRow, this._instrumentSettingsGroup.firstChild);
                     if (this._doc.song.channels[this._doc.channel].name == "") {
@@ -29402,6 +29423,7 @@ You should be redirected to the song at:<br /><br />
                     $("#pitchPresetSelect").parent().hide();
                     $("#drumPresetSelect").parent().hide();
                     this._modulatorGroup.appendChild(this._instrumentCopyGroup);
+                    this._modulatorGroup.appendChild(this._instrumentExportGroup);
                     this._modulatorGroup.insertBefore(this._instrumentsButtonRow, this._modulatorGroup.firstChild);
                     this._modulatorGroup.insertBefore(this._instrumentSettingsTextRow, this._modulatorGroup.firstChild);
                     if (this._doc.song.channels[this._doc.channel].name == "") {
@@ -30584,6 +30606,51 @@ You should be redirected to the song at:<br /><br />
                 }
                 this.refocusStage();
             };
+            this._exportInstrument = () => {
+                const channel = this._doc.song.channels[this._doc.channel];
+                const instrument = channel.instruments[this._doc.getCurrentInstrument()];
+                const instrumentCopy = instrument.toJsonObject();
+                instrumentCopy["isDrum"] = this._doc.song.getChannelIsNoise(this._doc.channel);
+                const jsonBlob = new Blob([JSON.stringify(instrumentCopy)], { type: 'application/json' });
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(jsonBlob);
+                downloadLink.download = 'instrument.json';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                this.refocusStage();
+            };
+            this._importInstrument = () => {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                fileInput.style.display = 'none';
+                fileInput.addEventListener('change', (event) => {
+                    const files = event.target.files;
+                    if (files && files.length > 0) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            var _a;
+                            try {
+                                const instrumentCopy = JSON.parse(String((_a = e.target) === null || _a === void 0 ? void 0 : _a.result));
+                                const channel = this._doc.song.channels[this._doc.channel];
+                                const instrument = channel.instruments[this._doc.getCurrentInstrument()];
+                                if (instrumentCopy != null && instrumentCopy["isDrum"] == this._doc.song.getChannelIsNoise(this._doc.channel)) {
+                                    this._doc.record(new ChangePasteInstrument(this._doc, instrument, instrumentCopy));
+                                }
+                                this.refocusStage();
+                            }
+                            catch (error) {
+                                console.error('Error reading file:', error);
+                            }
+                        };
+                        reader.readAsText(files[0]);
+                        document.body.removeChild(fileInput);
+                    }
+                });
+                document.body.appendChild(fileInput);
+                fileInput.click();
+            };
             this._whenSetTempo = () => {
                 this._doc.record(new ChangeTempo(this._doc, -1, parseInt(this._tempoStepper.value) | 0));
             };
@@ -31136,6 +31203,8 @@ You should be redirected to the song at:<br /><br />
             this.mainLayer.addEventListener("focusin", this._onFocusIn);
             this._instrumentCopyButton.addEventListener("click", this._copyInstrument.bind(this));
             this._instrumentPasteButton.addEventListener("click", this._pasteInstrument.bind(this));
+            this._instrumentExportButton.addEventListener("click", this._exportInstrument.bind(this));
+            this._instrumentImportButton.addEventListener("click", this._importInstrument.bind(this));
             this._instrumentVolumeSliderInputBox.addEventListener("input", () => { this._doc.record(new ChangeVolume(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].volume, Math.min(25.0, Math.max(-25.0, Math.round(+this._instrumentVolumeSliderInputBox.value))))); });
             this._panSliderInputBox.addEventListener("input", () => { this._doc.record(new ChangePan(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].pan, Math.min(100.0, Math.max(0.0, Math.round(+this._panSliderInputBox.value))))); });
             this._detuneSliderInputBox.addEventListener("input", () => { this._doc.record(new ChangeDetune(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].detune, Math.min(Config.detuneMax - Config.detuneCenter, Math.max(Config.detuneMin - Config.detuneCenter, Math.round(+this._detuneSliderInputBox.value))))); });
