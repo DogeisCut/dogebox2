@@ -83,8 +83,8 @@ var beepbox = (function (exports) {
     Config.barCountMin = 1;
     Config.barCountMax = 256;
     Config.instrumentCountMin = 1;
-    Config.layeredInstrumentCountMax = 4;
-    Config.patternInstrumentCountMax = 10;
+    Config.layeredInstrumentCountMax = 10;
+    Config.patternInstrumentCountMax = 48;
     Config.partsPerBeat = 24;
     Config.ticksPerPart = 2;
     Config.ticksPerArpeggio = 3;
@@ -152,7 +152,7 @@ var beepbox = (function (exports) {
     Config.filterGainRange = 15;
     Config.filterGainCenter = 7;
     Config.filterGainStep = 1.0 / 2.0;
-    Config.filterMaxPoints = 8;
+    Config.filterMaxPoints = 12;
     Config.filterTypeNames = ["low-pass", "high-pass", "peak"];
     Config.filterMorphCount = 10;
     Config.filterSimpleCutRange = 11;
@@ -192,8 +192,8 @@ var beepbox = (function (exports) {
         { name: "piano", voices: 2, spread: 0.01, offset: 0.0, expression: 1.0, sign: 0.7 },
         { name: "warbled", voices: 2, spread: 0.25, offset: 0.05, expression: 0.9, sign: -0.8 },
     ]);
-    Config.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type"];
-    Config.effectOrder = [2, 10, 11, 7, 8, 9, 5, 3, 4, 1, 6, 0];
+    Config.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "note range", "invert wave"];
+    Config.effectOrder = [2, 10, 11, 7, 8, 9, 5, 3, 4, 1, 6, 0, 12, 13];
     Config.noteSizeMax = 6;
     Config.volumeRange = 50;
     Config.volumeLogScale = 0.1428;
@@ -322,17 +322,17 @@ var beepbox = (function (exports) {
     Config.harmonicsWavelength = 1 << 11;
     Config.pulseWidthRange = 50;
     Config.pulseWidthStepPower = 0.5;
-    Config.pitchChannelCountMin = 1;
-    Config.pitchChannelCountMax = 40;
+    Config.pitchChannelCountMin = 0;
+    Config.pitchChannelCountMax = 80;
     Config.noiseChannelCountMin = 0;
-    Config.noiseChannelCountMax = 16;
+    Config.noiseChannelCountMax = 32;
     Config.modChannelCountMin = 0;
-    Config.modChannelCountMax = 12;
+    Config.modChannelCountMax = 24;
     Config.noiseInterval = 6;
     Config.pitchesPerOctave = 12;
     Config.drumCount = 12;
-    Config.pitchOctaves = 8;
-    Config.modCount = 6;
+    Config.pitchOctaves = 10;
+    Config.modCount = 8;
     Config.maxPitch = Config.pitchOctaves * Config.pitchesPerOctave;
     Config.maximumTonesPerChannel = Config.maxChordSize * 2;
     Config.justIntonationSemitones = [1.0 / 2.0, 8.0 / 15.0, 9.0 / 16.0, 3.0 / 5.0, 5.0 / 8.0, 2.0 / 3.0, 32.0 / 45.0, 3.0 / 4.0, 4.0 / 5.0, 5.0 / 6.0, 8.0 / 9.0, 15.0 / 16.0, 1.0, 16.0 / 15.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 45.0 / 32.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 16.0 / 9.0, 15.0 / 8.0, 2.0].map(x => Math.log2(x) * Config.pitchesPerOctave);
@@ -397,17 +397,17 @@ var beepbox = (function (exports) {
     ]);
     Config.barEditorHeight = 10;
     Config.modulators = toNameMap([
-        { name: "none", pianoName: "None", maxRawVol: 6, newNoteVol: 6, forSong: true, convertRealFactor: 0, associatedEffect: 12,
+        { name: "none", pianoName: "None", maxRawVol: 6, newNoteVol: 6, forSong: true, convertRealFactor: 0, associatedEffect: 14,
             promptName: "No Mod Setting", promptDesc: ["No setting has been chosen yet, so this modulator will have no effect. Try choosing a setting with the dropdown, then click this '?' again for more info.", "[$LO - $HI]"] },
-        { name: "song volume", pianoName: "Volume", maxRawVol: 100, newNoteVol: 100, forSong: true, convertRealFactor: 0, associatedEffect: 12,
+        { name: "song volume", pianoName: "Volume", maxRawVol: 100, newNoteVol: 100, forSong: true, convertRealFactor: 0, associatedEffect: 14,
             promptName: "Song Volume", promptDesc: ["This setting affects the overall volume of the song, just like the main volume slider.", "At $HI, the volume will be unchanged from default, and it will get gradually quieter down to $LO.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "tempo", pianoName: "Tempo", maxRawVol: Config.tempoMax - Config.tempoMin, newNoteVol: Math.ceil((Config.tempoMax - Config.tempoMin) / 2), forSong: true, convertRealFactor: Config.tempoMin, associatedEffect: 12,
+        { name: "tempo", pianoName: "Tempo", maxRawVol: Config.tempoMax - Config.tempoMin, newNoteVol: Math.ceil((Config.tempoMax - Config.tempoMin) / 2), forSong: true, convertRealFactor: Config.tempoMin, associatedEffect: 14,
             promptName: "Song Tempo", promptDesc: ["This setting controls the speed your song plays at, just like the tempo slider.", "When you first make a note for this setting, it will default to your current tempo. Raising it speeds up the song, up to $HI BPM, and lowering it slows it down, to a minimum of $LO BPM.", "Note that you can make a 'swing' effect by rapidly changing between two tempo values.", "[OVERWRITING] [$LO - $HI] [BPM]"] },
-        { name: "song reverb", pianoName: "Reverb", maxRawVol: Config.reverbRange * 2, newNoteVol: Config.reverbRange, forSong: true, convertRealFactor: -Config.reverbRange, associatedEffect: 12,
+        { name: "song reverb", pianoName: "Reverb", maxRawVol: Config.reverbRange * 2, newNoteVol: Config.reverbRange, forSong: true, convertRealFactor: -Config.reverbRange, associatedEffect: 14,
             promptName: "Song Reverb", promptDesc: ["This setting affects the overall reverb of your song. It works by multiplying existing reverb for instruments, so those with no reverb set will be unaffected.", "At $MID, all instruments' reverb will be unchanged from default. This increases up to double the reverb value at $HI, or down to no reverb at $LO.", "[MULTIPLICATIVE] [$LO - $HI]"] },
-        { name: "next bar", pianoName: "Next Bar", maxRawVol: 1, newNoteVol: 1, forSong: true, convertRealFactor: 0, associatedEffect: 12,
+        { name: "next bar", pianoName: "Next Bar", maxRawVol: 1, newNoteVol: 1, forSong: true, convertRealFactor: 0, associatedEffect: 14,
             promptName: "Go To Next Bar", promptDesc: ["This setting functions a little different from most. Wherever a note is placed, the song will jump immediately to the next bar when it is encountered.", "This jump happens at the very start of the note, so the length of a next-bar note is irrelevant. Also, the note can be value 0 or 1, but the value is also irrelevant - wherever you place a note, the song will jump.", "You can make mixed-meter songs or intro sections by cutting off unneeded beats with a next-bar modulator.", "[$LO - $HI]"] },
-        { name: "note volume", pianoName: "Note Vol.", maxRawVol: Config.volumeRange, newNoteVol: Math.ceil(Config.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-Config.volumeRange / 2.0), associatedEffect: 12,
+        { name: "note volume", pianoName: "Note Vol.", maxRawVol: Config.volumeRange, newNoteVol: Math.ceil(Config.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-Config.volumeRange / 2.0), associatedEffect: 14,
             promptName: "Note Volume", promptDesc: ["This setting affects the volume of your instrument as if its note size had been scaled.", "At $MID, an instrument's volume will be unchanged from default. This means you can still use the volume sliders to mix the base volume of instruments. The volume gradually increases up to $HI, or decreases down to mute at $LO.", "This setting was the default for volume modulation in JummBox for a long time. Due to some new effects like distortion and bitcrush, note volume doesn't always allow fine volume control. Also, this modulator affects the value of FM modulator waves instead of just carriers. This can distort the sound which may be useful, but also may be undesirable. In those cases, use the 'mix volume' modulator instead, which will always just scale the volume with no added effects.", "For display purposes, this mod will show up on the instrument volume slider, as long as there is not also an active 'mix volume' modulator anyhow. However, as mentioned, it works more like changing note volume.", "[MULTIPLICATIVE] [$LO - $HI]"] },
         { name: "pan", pianoName: "Pan", maxRawVol: Config.panMax, newNoteVol: Math.ceil(Config.panMax / 2), forSong: false, convertRealFactor: 0, associatedEffect: 2,
             promptName: "Instrument Panning", promptDesc: ["This setting controls the panning of your instrument, just like the panning slider.", "At $LO, your instrument will sound like it is coming fully from the left-ear side. At $MID it will be right in the middle, and at $HI, it will sound like it's on the right.", "[OVERWRITING] [$LO - $HI] [L-R]"] },
@@ -415,23 +415,23 @@ var beepbox = (function (exports) {
             promptName: "Instrument Reverb", promptDesc: ["This setting controls the reverb of your insturment, just like the reverb slider.", "At $LO, your instrument will have no reverb. At $HI, it will be at maximum.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "distortion", pianoName: "Distortion", maxRawVol: Config.distortionRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 3,
             promptName: "Instrument Distortion", promptDesc: ["This setting controls the amount of distortion for your instrument, just like the distortion slider.", "At $LO, your instrument will have no distortion. At $HI, it will be at maximum.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "fm slider 1", pianoName: "FM 1", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "fm slider 1", pianoName: "FM 1", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "FM Slider 1", promptDesc: ["This setting affects the strength of the first FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "fm slider 2", pianoName: "FM 2", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "fm slider 2", pianoName: "FM 2", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "FM Slider 2", promptDesc: ["This setting affects the strength of the second FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "fm slider 3", pianoName: "FM 3", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "fm slider 3", pianoName: "FM 3", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "FM Slider 3", promptDesc: ["This setting affects the strength of the third FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "fm slider 4", pianoName: "FM 4", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "fm slider 4", pianoName: "FM 4", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "FM Slider 4", promptDesc: ["This setting affects the strength of the fourth FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "fm feedback", pianoName: "FM Feedback", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "fm feedback", pianoName: "FM Feedback", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "FM Feedback", promptDesc: ["This setting affects the strength of the FM feedback slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "pulse width", pianoName: "Pulse Width", maxRawVol: Config.pulseWidthRange, newNoteVol: Config.pulseWidthRange, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "pulse width", pianoName: "Pulse Width", maxRawVol: Config.pulseWidthRange, newNoteVol: Config.pulseWidthRange, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "Pulse Width", promptDesc: ["This setting controls the width of this instrument's pulse wave, just like the pulse width slider.", "At $HI, your instrument will sound like a pure square wave (on 50% of the time). It will gradually sound narrower down to $LO, where it will be inaudible (as it is on 0% of the time).", "Changing pulse width randomly between a few values is a common strategy in chiptune music to lend some personality to a lead instrument.", "[OVERWRITING] [$LO - $HI] [%Duty]"] },
         { name: "detune", pianoName: "Detune", maxRawVol: Config.detuneMax - Config.detuneMin, newNoteVol: Config.detuneCenter, forSong: false, convertRealFactor: -Config.detuneCenter, associatedEffect: 8,
             promptName: "Instrument Detune", promptDesc: ["This setting controls the detune for this instrument, just like the detune slider.", "At $MID, your instrument will have no detune applied. Each tick corresponds to one cent, or one-hundredth of a pitch. Thus, each change of 100 ticks corresponds to one half-step of detune, up to two half-steps up at $HI, or two half-steps down at $LO.", "[OVERWRITING] [$LO - $HI] [cents]"] },
         { name: "vibrato depth", pianoName: "Vibrato Depth", maxRawVol: 50, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 9,
             promptName: "Vibrato Depth", promptDesc: ["This setting controls the amount that your pitch moves up and down by during vibrato, just like the vibrato depth slider.", "At $LO, your instrument will have no vibrato depth so its vibrato would be inaudible. This increases up to $HI, where an extreme pitch change will be noticeable.", "[OVERWRITING] [$LO - $HI] [pitch ÷25]"] },
-        { name: "song detune", pianoName: "Detune", maxRawVol: Config.songDetuneMax - Config.songDetuneMin, newNoteVol: Math.ceil((Config.songDetuneMax - Config.songDetuneMin) / 2), forSong: true, convertRealFactor: -250, associatedEffect: 12,
+        { name: "song detune", pianoName: "Detune", maxRawVol: Config.songDetuneMax - Config.songDetuneMin, newNoteVol: Math.ceil((Config.songDetuneMax - Config.songDetuneMin) / 2), forSong: true, convertRealFactor: -250, associatedEffect: 14,
             promptName: "Song Detune", promptDesc: ["This setting controls the overall detune of the entire song. There is no associated slider.", "At $MID, your song will have no extra detune applied and sound unchanged from default. Each tick corresponds to four cents, or four hundredths of a pitch. Thus, each change of 25 ticks corresponds to one half-step of detune, up to 10 half-steps up at $HI, or 10 half-steps down at $LO.", "[MULTIPLICATIVE] [$LO - $HI] [cents x4]"] },
         { name: "vibrato speed", pianoName: "Vibrato Speed", maxRawVol: 30, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 9,
             promptName: "Vibrato Speed", promptDesc: ["This setting controls the speed your instrument will vibrato at, just like the slider.", "A setting of $LO means there will be no oscillation, and vibrato will be disabled. Higher settings will increase the speed, up to a dramatic trill at the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
@@ -444,7 +444,7 @@ var beepbox = (function (exports) {
             promptName: "Panning Delay", promptDesc: ["This setting controls the delay applied to panning for your instrument, just like the pan delay slider.", "With more delay, the panning effect will generally be more pronounced. $MID is the default value, whereas $LO will remove any delay at all. No delay can be desirable for chiptune songs.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "reset arp", pianoName: "Reset Arp", maxRawVol: 1, newNoteVol: 1, forSong: false, convertRealFactor: 0, associatedEffect: 11,
             promptName: "Reset Arpeggio", promptDesc: ["This setting functions a little different from most. Wherever a note is placed, the arpeggio of this instrument will reset at the very start of that note. This is most noticeable with lower arpeggio speeds. The lengths and values of notes for this setting don't matter, just the note start times.", "This mod can be used to sync up your apreggios so that they always sound the same, even if you are using an odd-ratio arpeggio speed or modulating arpeggio speed.", "[$LO - $HI]"] },
-        { name: "eq filter", pianoName: "EQFlt", maxRawVol: 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "eq filter", pianoName: "EQFlt", maxRawVol: 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "EQ Filter", promptDesc: ["This setting controls a few separate things for your instrument's EQ filter.", "When the option 'morph' is selected, your modulator values will indicate a sub-filter index of your EQ filter to 'morph' to over time. For example, a change from 0 to 1 means your main filter (default) will morph to sub-filter 1 over the specified duration. You can shape the main filter and sub-filters in the large filter editor ('+' button). If your two filters' number, type, and order of filter dots all match up, the morph will happen smoothly and you'll be able to hear them changing. If they do not match up, the filters will simply jump between each other.", "Note that filters will morph based on endpoints in the pattern editor. So, if you specify a morph from sub-filter 1 to 4 but do not specifically drag in new endpoints for 2 and 3, it will morph directly between 1 and 4 without going through the others.", "If you target Dot X or Dot Y, you can finely tune the coordinates of a single dot for your filter. The number of available dots to choose is dependent on your main filter's dot count.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "note filter", pianoName: "N.Flt", maxRawVol: 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 5,
             promptName: "Note Filter", promptDesc: ["This setting controls a few separate things for your instrument's note filter.", "When the option 'morph' is selected, your modulator values will indicate a sub-filter index of your note filter to 'morph' to over time. For example, a change from 0 to 1 means your main filter (default) will morph to sub-filter 1 over the specified duration. You can shape the main filter and sub-filters in the large filter editor ('+' button). If your two filters' number, type, and order of filter dots all match up, the morph will happen smoothly and you'll be able to hear them changing. If they do not match up, the filters will simply jump between each other.", "Note that filters will morph based on endpoints in the pattern editor. So, if you specify a morph from sub-filter 1 to 4 but do not specifically drag in new endpoints for 2 and 3, it will morph directly between 1 and 4 without going through the others.", "If you target Dot X or Dot Y, you can finely tune the coordinates of a single dot for your filter. The number of available dots to choose is dependent on your main filter's dot count.", "[OVERWRITING] [$LO - $HI]"] },
@@ -454,14 +454,14 @@ var beepbox = (function (exports) {
             promptName: "Instrument Frequency Crush", promptDesc: ["This setting controls the frequency crush of your instrument, just like the freq crush slider.", "At a value of $LO, no frequency crush will be applied. This increases and the frequency crush effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "echo", pianoName: "Echo", maxRawVol: Config.echoSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 6,
             promptName: "Instrument Echo Sustain", promptDesc: ["This setting controls the echo sustain (echo loudness) of your instrument, just like the echo slider.", "At $LO, your instrument will have no echo sustain and echo will not be audible. Echo sustain increases and the echo effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "echo delay", pianoName: "Echo Delay", maxRawVol: Config.echoDelayRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "echo delay", pianoName: "Echo Delay", maxRawVol: Config.echoDelayRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "Instrument Echo Delay", promptDesc: ["This setting controls the echo delay of your instrument, just like the echo delay slider.", "At $LO, your instrument will have very little echo delay, and this increases up to 2 beats of delay at $HI.", "[OVERWRITING] [$LO - $HI] [~beats ÷12]"]
         },
         { name: "chorus", pianoName: "Chorus", maxRawVol: Config.chorusRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 1,
             promptName: "Instrument Chorus", promptDesc: ["This setting controls the chorus strength of your instrument, just like the chorus slider.", "At $LO, the chorus effect will be disabled. The strength of the chorus effect increases up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "eq filt cut", pianoName: "EQFlt Cut", maxRawVol: Config.filterSimpleCutRange - 1, newNoteVol: Config.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "eq filt cut", pianoName: "EQFlt Cut", maxRawVol: Config.filterSimpleCutRange - 1, newNoteVol: Config.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "EQ Filter Cutoff Frequency", promptDesc: ["This setting controls the filter cut position of your instrument, just like the filter cut slider.", "This setting is roughly analagous to the horizontal position of a single low-pass dot on the advanced filter editor. At lower values, a wider range of frequencies is cut off.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "eq filt peak", pianoName: "EQFlt Peak", maxRawVol: Config.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "eq filt peak", pianoName: "EQFlt Peak", maxRawVol: Config.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "EQ Filter Peak Gain", promptDesc: ["This setting controls the filter peak position of your instrument, just like the filter peak slider.", "This setting is roughly analagous to the vertical position of a single low-pass dot on the advanced filter editor. At lower values, the cutoff frequency will not be emphasized, and at higher values you will hear emphasis on the cutoff frequency.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "note filt cut", pianoName: "N.Flt Cut", maxRawVol: Config.filterSimpleCutRange - 1, newNoteVol: Config.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 5,
             promptName: "Note Filter Cutoff Frequency", promptDesc: ["This setting controls the filter cut position of your instrument, just like the filter cut slider.", "This setting is roughly analagous to the horizontal position of a single low-pass dot on the advanced filter editor. At lower values, a wider range of frequencies is cut off.", "[OVERWRITING] [$LO - $HI]"] },
@@ -469,9 +469,9 @@ var beepbox = (function (exports) {
             promptName: "Note Filter Peak Gain", promptDesc: ["This setting controls the filter peak position of your instrument, just like the filter peak slider.", "This setting is roughly analagous to the vertical position of a single low-pass dot on the advanced filter editor. At lower values, the cutoff frequency will not be emphasized, and at higher values you will hear emphasis on the cutoff frequency.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "pitch shift", pianoName: "Pitch Shift", maxRawVol: Config.pitchShiftRange - 1, newNoteVol: Config.pitchShiftCenter, forSong: false, convertRealFactor: -Config.pitchShiftCenter, associatedEffect: 7,
             promptName: "Pitch Shift", promptDesc: ["This setting controls the pitch offset of your instrument, just like the pitch shift slider.", "At $MID your instrument will have no pitch shift. This increases as you decrease toward $LO pitches (half-steps) at the low end, or increases towards +$HI pitches at the high end.", "[OVERWRITING] [$LO - $HI] [pitch]"] },
-        { name: "sustain", pianoName: "Sustain", maxRawVol: Config.stringSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 12,
+        { name: "sustain", pianoName: "Sustain", maxRawVol: Config.stringSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14,
             promptName: "Picked String Sustain", promptDesc: ["This setting controls the sustain of your picked string instrument, just like the sustain slider.", "At $LO, your instrument will have minimum sustain and sound 'plucky'. This increases to a more held sound as your modulator approaches the maximum, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "mix volume", pianoName: "Mix Vol.", maxRawVol: Config.volumeRange, newNoteVol: Math.ceil(Config.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-Config.volumeRange / 2.0), associatedEffect: 12,
+        { name: "mix volume", pianoName: "Mix Vol.", maxRawVol: Config.volumeRange, newNoteVol: Math.ceil(Config.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-Config.volumeRange / 2.0), associatedEffect: 14,
             promptName: "Mix Volume", promptDesc: ["This setting affects the volume of your instrument as if its volume slider had been moved.", "At $MID, an instrument's volume will be unchanged from default. This means you can still use the volume sliders to mix the base volume of instruments, since this setting and the default value work multiplicatively. The volume gradually increases up to $HI, or decreases down to mute at $LO.", "Unlike the 'note volume' setting, mix volume is very straightforward and simply affects the resultant instrument volume after all effects are applied.", "[MULTIPLICATIVE] [$LO - $HI]"] },
     ]);
     function centerWave(wave) {
@@ -728,6 +728,12 @@ var beepbox = (function (exports) {
     function effectsIncludeReverb(effects) {
         return (effects & (1 << 0)) != 0;
     }
+    function effectsIncludeNoteRange(effects) {
+        return (effects & (1 << 12)) != 0;
+    }
+    function effectsIncludeInvertWave(effects) {
+        return (effects & (1 << 13)) != 0;
+    }
     function rawChipToIntegrated(raw) {
         const newArray = new Array(raw.length);
         const dictionary = {};
@@ -778,7 +784,7 @@ var beepbox = (function (exports) {
             return null;
         }
     }
-    EditorConfig.version = "1.0";
+    EditorConfig.version = "1.1";
     EditorConfig.versionDisplayName = "Dogebox2 " + EditorConfig.version;
     EditorConfig.releaseNotesURL = "https://dogeiscut.github.io/dogebox2/patch_notes/" + EditorConfig.version + ".html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
@@ -1448,7 +1454,7 @@ var beepbox = (function (exports) {
         static setTheme(name) {
             let theme = this.themes[name];
             if (theme == undefined)
-                theme = this.themes["dark classic"];
+                theme = this.themes["dogebox2"];
             this._styleElement.textContent = theme;
             const themeColor = document.querySelector("meta[name='theme-color']");
             if (themeColor != null) {
@@ -4263,6 +4269,239 @@ var beepbox = (function (exports) {
 			--disabled-note-primary: #c6c6c6;
 			--disabled-note-secondary: #8c8c8c;
 		}`,
+        "dogebox classic": `
+				:root {
+					--page-margin: #0d0063;
+--editor-background: #0D0063;
+--hover-preview: white;
+--playhead: white;
+--primary-text: white;
+--secondary-text: #999;
+--inverted-text: black;
+--text-selection: rgba(119,68,255,0.99);
+--box-selection-fill: rgba(255,255,255,0.2);
+--loop-accent: #74f;
+--link-accent: #98f;
+--ui-widget-background: #444;
+--ui-widget-focus: #777;
+--pitch-background: #322c59;
+--tonic: #1c1933;
+--fifth-note: #7b74ad;
+--white-piano-key: #bbb;
+--black-piano-key: #444;
+				--white-piano-key-text: #131200;
+				--black-piano-key-text: #fff;
+					--use-color-formula: false;
+					--track-editor-bg-pitch: #444;
+					--track-editor-bg-pitch-dim: #333;
+					--track-editor-bg-noise: #444;
+					--track-editor-bg-noise-dim: #333;
+					--track-editor-bg-mod: #234;
+					--track-editor-bg-mod-dim: #123;
+					--multiplicative-mod-slider: #456;
+					--overwriting-mod-slider: #654;
+					--indicator-primary: #74f;
+					--indicator-secondary: #444;
+					--select2-opt-group: #585858;
+					--input-box-outline: #333;
+					--mute-button-normal: #ffa033;
+					--mute-button-mod: #9a6bff;
+--pitch1-secondary-channel: #c7ac00;
+--pitch1-primary-channel: #fcf403;
+--pitch1-secondary-note: #c7c700;
+--pitch1-primary-note: #fcf403;
+--pitch2-secondary-channel: #9400b5;
+--pitch2-primary-channel: #ff00ee;
+--pitch2-secondary-note: #9400b5;
+--pitch2-primary-note: #ff00ee;
+--pitch3-secondary-channel: #b37466;
+--pitch3-primary-channel: #ffc6a1;
+--pitch3-secondary-note: #b37466;
+--pitch3-primary-note: #ffc6a1;
+--pitch4-secondary-channel: #00a100;
+--pitch4-primary-channel: #50ff50;
+--pitch4-secondary-note: #00c700;
+--pitch4-primary-note: #a0ffa0;
+--pitch5-secondary-channel: #d020d0;
+--pitch5-primary-channel: #ff90ff;
+--pitch5-secondary-note: #e040e0;
+--pitch5-primary-note: #ffc0ff;
+--pitch6-secondary-channel: #7777b0;
+--pitch6-primary-channel: #a0a0ff;
+--pitch6-secondary-note: #8888d0;
+--pitch6-primary-note: #d0d0ff;
+--pitch7-secondary-channel: #c7ac00;
+--pitch7-primary-channel: #fcf403;
+--pitch7-secondary-note: #c7c700;
+--pitch7-primary-note: #fcf403;
+--pitch8-secondary-channel: #9400b5;
+--pitch8-primary-channel: #ff00ee;
+--pitch8-secondary-note: #9400b5;
+--pitch8-primary-note: #ff00ee;
+--pitch9-secondary-channel: #b37466;
+--pitch9-primary-channel: #ffc6a1;
+--pitch9-secondary-note: #b37466;
+--pitch9-primary-note: #ffc6a1;
+--pitch10-secondary-channel: #00a100;
+--pitch10-primary-channel: #50ff50;
+--pitch10-secondary-note: #00c700;
+--pitch10-primary-note: #a0ffa0;
+--noise1-secondary-channel: #95acad;
+--noise1-primary-channel: #cee9eb;
+--noise1-secondary-note: #95acad;
+--noise1-primary-note: #cee9eb;
+--noise2-secondary-channel: #996633;
+--noise2-primary-channel: #ddaa77;
+--noise2-secondary-note: #cc9966;
+--noise2-primary-note: #f0d0bb;
+--noise3-secondary-channel: #4a6d8f;
+--noise3-primary-channel: #77aadd;
+--noise3-secondary-note: #6f9fcf;
+--noise3-primary-note: #bbd7ff;
+--noise4-secondary-channel: #7c9b42;
+				--noise4-primary-channel:   #a5ff00;
+				--noise4-secondary-note:    #7c9b42;
+				--noise4-primary-note:      #a5ff00;
+				--noise5-secondary-channel: #7c9b42;
+				--noise5-primary-channel:   #A2BB77;
+				--noise5-secondary-note:    #91AA66;
+				--noise5-primary-note:      #C5E2B2;
+       --mod1-secondary-channel: #c7ac00;
+--mod1-primary-channel: #fcf403;
+--mod1-secondary-note: #c7c700;
+--mod1-primary-note: #fcf403;
+--mod2-secondary-channel: #9400b5;
+--mod2-primary-channel: #ff00ee;
+--mod2-secondary-note: #9400b5;
+--mod2-primary-note: #ff00ee;
+--mod3-secondary-channel: #b37466;
+--mod3-primary-channel: #ffc6a1;
+--mod3-secondary-note: #b37466;
+--mod3-primary-note: #ffc6a1;
+--mod4-secondary-channel: #00a100;
+--mod4-primary-channel: #50ff50;
+--mod4-secondary-note: #00c700;
+--mod4-primary-note: #a0ffa0;
+					--mod-label-primary:        #999;
+					--mod-label-secondary-text: #333;
+					--mod-label-primary-text:   black;
+					--disabled-note-primary:    #999;
+					--disabled-note-secondary:  #666;
+				}
+			`,
+        "dogebox2": `
+			:root {
+				--page-margin: #000015;
+				--editor-background: #000015;
+				--hover-preview: #00ffff;
+				--playhead: #00ffff;
+				--primary-text: white;
+				--secondary-text: #999;
+				--inverted-text: black;
+				--text-selection: rgba(255, 127, 80, 0.99);
+				--box-selection-fill: rgba(255, 255, 255, 0.2);
+				--loop-accent: #ff00ff;
+				--link-accent: #00ffff;
+				--ui-widget-background: #222222;
+				--ui-widget-focus: #444444;
+				--pitch-background: #222222;
+				--tonic: #e74c3c;
+				--fifth-note: #3498db;
+				--white-piano-key: #ffffff;
+				--black-piano-key: #222222;
+				--use-color-formula: false;
+				--track-editor-bg-pitch: #222222;
+				--track-editor-bg-pitch-dim: #111111;
+				--track-editor-bg-noise: #222222;
+				--track-editor-bg-noise-dim: #111111;
+				--track-editor-bg-mod: #333333;
+				--track-editor-bg-mod-dim: #111111;
+				--multiplicative-mod-slider: #666666;
+				--overwriting-mod-slider: #666666;
+				--indicator-primary: #ff00ff;
+				--indicator-secondary: #00ffff;
+				--select2-opt-group: #333333;
+				--input-box-outline: #444444;
+				--mute-button-normal: #ff00ff;
+				--mute-button-mod: #00ffff;
+				--pitch1-secondary-channel: #f1c40f;
+				--pitch1-primary-channel: #fbff8e;
+				--pitch1-secondary-note: #f9c74f;
+				--pitch1-primary-note: #fdffb2;
+				--pitch2-secondary-channel: #f1900f;
+				--pitch2-primary-channel: #ffb28e;
+				--pitch2-secondary-note: #f8874f;
+				--pitch2-primary-note: #fbac92;
+				--pitch3-secondary-channel: #f15b0f;
+				--pitch3-primary-channel: #ff928e;
+				--pitch3-secondary-note: #f7774f;
+				--pitch3-primary-note: #fab272;
+				--pitch4-secondary-channel: #95f10f;
+				--pitch4-primary-channel: #b2ff8e;
+				--pitch4-secondary-note: #87f84f;
+				--pitch4-primary-note: #acfb92;
+				--pitch5-secondary-channel: #5bf10f;
+				--pitch5-primary-channel: #92ff8e;
+				--pitch5-secondary-note: #77f84f;
+				--pitch5-primary-note: #abfb72;
+				--pitch6-secondary-channel: #00f10f;
+				--pitch6-primary-channel: #8eff8e;
+				--pitch6-secondary-note: #4ff84f;
+				--pitch6-primary-note: #92fb52;
+				--pitch7-secondary-channel: #0ff15b;
+				--pitch7-primary-channel: #82ff92;
+				--pitch7-secondary-note: #48f877;
+				--pitch7-primary-note: #8afb82;
+				--pitch8-secondary-channel: #0ff195;
+				--pitch8-primary-channel: #72ffb2;
+				--pitch8-secondary-note: #48f887;
+				--pitch8-primary-note: #82fbbc;
+				--pitch9-secondary-channel: #00f1f1;
+				--pitch9-primary-channel: #52fffb;
+				--pitch9-secondary-note: #48f8f8;
+				--pitch9-primary-note: #60fbfb;
+				--pitch10-secondary-channel: #5b00f1;
+				--pitch10-primary-channel: #9282ff;
+				--pitch10-secondary-note: #7748f8;
+				--pitch10-primary-note: #ab52fb;
+				--noise1-secondary-channel: #224444;
+				--noise1-primary-channel: #446666;
+				--noise1-secondary-note: #668888;
+				--noise1-primary-note: #88aaaa;
+				--noise2-secondary-channel: #442244;
+				--noise2-primary-channel: #664466;
+				--noise2-secondary-note: #886688;
+				--noise2-primary-note: #aaaa88;
+				--noise3-secondary-channel: #224422;
+				--noise3-primary-channel: #446644;
+				--noise3-secondary-note: #668866;
+				--noise3-primary-note: #88aa88;
+				--noise4-secondary-channel: #442200;
+				--noise4-primary-channel: #664400;
+				--noise4-secondary-note: #886600;
+				--noise4-primary-note: #aaaa00;
+				--noise5-secondary-channel: #004422;
+				--noise5-primary-channel: #006644;
+				--noise5-secondary-note: #008866;
+				--noise5-primary-note: #00aa88;
+				--mod1-secondary-channel: #fe00ff;
+				--mod1-primary-channel: #ff72ff;
+				--mod1-secondary-note: #ff92ff;
+				--mod1-primary-note: #ffb2fb;
+				--mod2-secondary-channel: #00fe00;
+				--mod2-primary-channel: #8eff8e;
+				--mod2-secondary-note: #92ff92;
+				--mod2-primary-note: #b2ffb2;
+				--mod3-secondary-channel: #feff00;
+				--mod3-primary-channel: #fffb8e;
+				--mod3-secondary-note: #fffd92;
+				--mod3-primary-note: #fffe92;
+				--mod4-secondary-channel: #00fffe;
+				--mod4-primary-channel: #82fffb;
+				--mod4-secondary-note: #92ffff;
+				--mod4-primary-note: #b2fffb;
+				}
+			`,
     };
     ColorConfig.pageMargin = "var(--page-margin)";
     ColorConfig.editorBackground = "var(--editor-background)";
@@ -7630,6 +7869,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.modFilterTypes = [];
             this.invalidModulators = [];
             this.invertWave = false;
+            this.upperNoteLimit = Config.maxPitch;
+            this.lowerNoteLimit = 0;
             if (isModChannel) {
                 for (let mod = 0; mod < Config.modCount; mod++) {
                     this.modChannels.push(0);
@@ -7703,6 +7944,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.fadeOut = Config.fadeOutNeutral;
             this.transition = Config.transitions.dictionary["normal"].index;
             this.envelopeCount = 0;
+            this.upperNoteLimit = Config.maxPitch;
+            this.lowerNoteLimit = 0;
             this.invertWave = false;
             switch (type) {
                 case 0:
@@ -7967,6 +8210,13 @@ li.select2-results__option[role=group] > strong:hover {
             if (effectsIncludeReverb(this.effects)) {
                 instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
             }
+            if (effectsIncludeNoteRange(this.effects)) {
+                instrumentObject["upperNoteLimit"] = this.upperNoteLimit;
+                instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
+            }
+            if (effectsIncludeInvertWave(this.effects)) {
+                instrumentObject["invertWave"] = this.invertWave;
+            }
             if (this.type != 4) {
                 instrumentObject["fadeInSeconds"] = Math.round(10000 * Synth.fadeInSettingToSeconds(this.fadeIn)) / 10000;
                 instrumentObject["fadeOutTicks"] = Synth.fadeOutSettingToTicks(this.fadeOut);
@@ -8056,7 +8306,6 @@ li.select2-results__option[role=group] > strong:hover {
                 envelopes.push(this.envelopes[i].toJsonObject());
             }
             instrumentObject["envelopes"] = envelopes;
-            instrumentObject["invertWave"] = this.invertWave;
             return instrumentObject;
         }
         fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, legacyGlobalReverb = 0) {
@@ -8080,7 +8329,7 @@ li.select2-results__option[role=group] > strong:hover {
                 for (let i = 0; i < instrumentObject["effects"].length; i++) {
                     effects = effects | (1 << Config.effectNames.indexOf(instrumentObject["effects"][i]));
                 }
-                this.effects = (effects & ((1 << 12) - 1));
+                this.effects = (effects & ((1 << 14) - 1));
             }
             else {
                 const legacyEffectsNames = ["none", "reverb", "chorus", "chorus & reverb"];
@@ -8240,6 +8489,18 @@ li.select2-results__option[role=group] > strong:hover {
             }
             else {
                 this.reverb = legacyGlobalReverb;
+            }
+            if (instrumentObject["upperNoteLimit"] != undefined) {
+                this.upperNoteLimit = instrumentObject["upperNoteLimit"];
+            }
+            if (instrumentObject["lowerNoteLimit"] != undefined) {
+                this.lowerNoteLimit = instrumentObject["lowerNoteLimit"];
+            }
+            if (instrumentObject["invertWave"] != undefined) {
+                this.invertWave = instrumentObject["invertWave"];
+            }
+            else {
+                this.invertWave = false;
             }
             if (instrumentObject["pulseWidth"] != undefined) {
                 this.pulseWidth = clamp(1, Config.pulseWidthRange + 1, Math.round(instrumentObject["pulseWidth"]));
@@ -8486,12 +8747,6 @@ li.select2-results__option[role=group] > strong:hover {
                         legacySettings.filterResonance = 0;
                     }
                     this.convertLegacySettings(legacySettings, true);
-                }
-                if (instrumentObject["invertWave"] != undefined) {
-                    this.invertWave = instrumentObject["invertWave"];
-                }
-                else {
-                    this.invertWave = false;
                 }
                 for (let i = 0; i < Config.filterMorphCount; i++) {
                     if (Array.isArray(instrumentObject["eqSubFilters" + i])) {
@@ -8829,7 +9084,7 @@ li.select2-results__option[role=group] > strong:hover {
                             }
                         }
                     }
-                    buffer.push(113, base64IntToCharCode[instrument.effects >> 6], base64IntToCharCode[instrument.effects & 63]);
+                    buffer.push(113, base64IntToCharCode[(instrument.effects >>> (6 * 5)) & 63], base64IntToCharCode[(instrument.effects >>> (6 * 4)) & 63], base64IntToCharCode[(instrument.effects >>> (6 * 3)) & 63], base64IntToCharCode[(instrument.effects >>> (6 * 2)) & 63], base64IntToCharCode[(instrument.effects >>> (6 * 1)) & 63], base64IntToCharCode[(instrument.effects >>> (6 * 0)) & 63]);
                     if (effectsIncludeNoteFilter(instrument.effects)) {
                         buffer.push(base64IntToCharCode[+instrument.noteFilterType]);
                         if (instrument.noteFilterType) {
@@ -8908,6 +9163,13 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                     if (effectsIncludeReverb(instrument.effects)) {
                         buffer.push(base64IntToCharCode[instrument.reverb]);
+                    }
+                    if (effectsIncludeNoteRange(instrument.effects)) {
+                        buffer.push(base64IntToCharCode[instrument.upperNoteLimit >> 6], base64IntToCharCode[instrument.upperNoteLimit & 0x3f]);
+                        buffer.push(base64IntToCharCode[instrument.lowerNoteLimit >> 6], base64IntToCharCode[instrument.lowerNoteLimit & 0x3f]);
+                    }
+                    if (effectsIncludeInvertWave(instrument.effects)) {
+                        buffer.push(base64IntToCharCode[+instrument.invertWave]);
                     }
                     if (instrument.type != 4) {
                         buffer.push(100, base64IntToCharCode[instrument.fadeIn], base64IntToCharCode[instrument.fadeOut]);
@@ -9000,7 +9262,6 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].envelope]);
                     }
-                    buffer.push(89, base64IntToCharCode[+instrument.invertWave]);
                 }
             }
             buffer.push(98);
@@ -9585,7 +9846,7 @@ li.select2-results__option[role=group] > strong:hover {
                                 }
                             }
                             else {
-                                if (instrumentChannelIterator >= this.pitchChannelCount) {
+                                if (this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].type == 2) {
                                     this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipNoise = clamp(0, Config.chipNoises.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 }
                                 else {
@@ -9753,11 +10014,6 @@ li.select2-results__option[role=group] > strong:hover {
                         {
                             const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                             instrument.stringSustain = clamp(0, Config.stringSustainRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                        }
-                        break;
-                    case 89:
-                        {
-                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].invertWave = Boolean(base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         }
                         break;
                     case 100:
@@ -9975,7 +10231,7 @@ li.select2-results__option[role=group] > strong:hover {
                         {
                             const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                             if ((beforeNine && fromBeepBox) || (beforeFive && fromJummBox)) {
-                                instrument.effects = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] & ((1 << 12) - 1));
+                                instrument.effects = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] & ((1 << 14) - 1));
                                 if (legacyGlobalReverb == 0 && !(fromJummBox && beforeFive)) {
                                     instrument.effects &= ~(1 << 0);
                                 }
@@ -9997,7 +10253,12 @@ li.select2-results__option[role=group] > strong:hover {
                                 instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                             }
                             else {
-                                instrument.effects = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                instrument.effects = ((base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 5))
+                                    | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 4))
+                                    | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 3))
+                                    | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 2))
+                                    | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 1))
+                                    | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << (6 * 0))) >>> 0;
                                 if (effectsIncludeNoteFilter(instrument.effects)) {
                                     let typeCheck = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     if (fromBeepBox || typeCheck == 0) {
@@ -10125,8 +10386,15 @@ li.select2-results__option[role=group] > strong:hover {
                                         instrument.reverb = clamp(0, Config.reverbRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                     }
                                 }
+                                if (effectsIncludeNoteRange(instrument.effects)) {
+                                    instrument.upperNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                    instrument.lowerNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                }
+                                if (effectsIncludeInvertWave(instrument.effects)) {
+                                    instrument.invertWave = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] ? true : false);
+                                }
                             }
-                            instrument.effects &= (1 << 12) - 1;
+                            instrument.effects &= (1 << 14) - 1;
                         }
                         break;
                     case 118:
@@ -10499,7 +10767,7 @@ li.select2-results__option[role=group] > strong:hover {
                                                     songReverbIndex = mod;
                                                 }
                                             }
-                                            if (beforeFive && Config.modulators[instrument.modulators[mod]].associatedEffect != 12) {
+                                            if (beforeFive && Config.modulators[instrument.modulators[mod]].associatedEffect != 14) {
                                                 this.channels[instrument.modChannels[mod]].instruments[instrument.modInstruments[mod]].effects |= 1 << Config.modulators[instrument.modulators[mod]].associatedEffect;
                                             }
                                         }
@@ -12440,7 +12708,7 @@ li.select2-results__option[role=group] > strong:hover {
                     if (tgtInstrument == null)
                         continue;
                     const str = Config.modulators[instrument.modulators[mod]].name;
-                    if (!((Config.modulators[instrument.modulators[mod]].associatedEffect != 12 && !(tgtInstrument.effects & (1 << Config.modulators[instrument.modulators[mod]].associatedEffect)))
+                    if (!((Config.modulators[instrument.modulators[mod]].associatedEffect != 14 && !(tgtInstrument.effects & (1 << Config.modulators[instrument.modulators[mod]].associatedEffect)))
                         || (tgtInstrument.type != 1 && (str == "fm slider 1" || str == "fm slider 2" || str == "fm slider 3" || str == "fm slider 4" || str == "fm feedback"))
                         || (tgtInstrument.type != 6 && (str == "pulse width"))
                         || (!tgtInstrument.getChord().arpeggiates && (str == "arp speed" || str == "reset arp"))
@@ -13271,8 +13539,9 @@ li.select2-results__option[role=group] > strong:hover {
                 const instrumentState = channelState.instruments[instrumentIndex];
                 const toneList = instrumentState.liveInputTones;
                 let toneCount = 0;
+                const instrument = channel.instruments[instrumentIndex];
+                const filteredPitches = pitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
                 if (this.liveInputDuration > 0 && channelIndex == this.liveInputChannel && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
-                    const instrument = channel.instruments[instrumentIndex];
                     if (instrument.getChord().singleTone) {
                         let tone;
                         if (toneList.count() <= toneCount) {
@@ -13288,10 +13557,10 @@ li.select2-results__option[role=group] > strong:hover {
                             tone = toneList.get(toneCount);
                         }
                         toneCount++;
-                        for (let i = 0; i < pitches.length; i++) {
-                            tone.pitches[i] = pitches[i];
+                        for (let i = 0; i < filteredPitches.length; i++) {
+                            tone.pitches[i] = filteredPitches[i];
                         }
-                        tone.pitchCount = pitches.length;
+                        tone.pitchCount = filteredPitches.length;
                         tone.chordSize = 1;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
@@ -13301,13 +13570,13 @@ li.select2-results__option[role=group] > strong:hover {
                         this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
                     }
                     else {
-                        this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
-                        for (let i = 0; i < pitches.length; i++) {
+                        this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
+                        for (let i = 0; i < filteredPitches.length; i++) {
                             let tone;
                             if (this.tempMatchedPitchTones[toneCount] != null) {
                                 tone = this.tempMatchedPitchTones[toneCount];
                                 this.tempMatchedPitchTones[toneCount] = null;
-                                if (tone.pitchCount != 1 || tone.pitches[0] != pitches[i]) {
+                                if (tone.pitchCount != 1 || tone.pitches[0] != filteredPitches[i]) {
                                     this.releaseTone(instrumentState, tone);
                                     tone = this.newTone();
                                 }
@@ -13318,9 +13587,9 @@ li.select2-results__option[role=group] > strong:hover {
                                 toneList.pushBack(tone);
                             }
                             toneCount++;
-                            tone.pitches[0] = pitches[i];
+                            tone.pitches[0] = filteredPitches[i];
                             tone.pitchCount = 1;
-                            tone.chordSize = pitches.length;
+                            tone.chordSize = filteredPitches.length;
                             tone.instrumentIndex = instrumentIndex;
                             tone.note = tone.prevNote = tone.nextNote = null;
                             tone.atNoteStart = this.liveInputStarted;
@@ -13589,7 +13858,8 @@ li.select2-results__option[role=group] > strong:hover {
                         else if (nextNoteForThisInstrument != null) {
                             tonesInNextNote = chord.singleTone ? 1 : nextNoteForThisInstrument.pitches.length;
                         }
-                        if (chord.singleTone) {
+                        let filteredPitches = note.pitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                        if (chord.singleTone && !(filteredPitches.length <= 0)) {
                             const atNoteStart = (Config.ticksPerPart * note.start == currentTick);
                             let tone;
                             if (toneList.count() <= toneCount) {
@@ -13611,10 +13881,10 @@ li.select2-results__option[role=group] > strong:hover {
                                 tone = toneList.get(toneCount);
                             }
                             toneCount++;
-                            for (let i = 0; i < note.pitches.length; i++) {
-                                tone.pitches[i] = note.pitches[i];
+                            for (let i = 0; i < filteredPitches.length; i++) {
+                                tone.pitches[i] = filteredPitches[i];
                             }
-                            tone.pitchCount = note.pitches.length;
+                            tone.pitchCount = filteredPitches.length;
                             tone.chordSize = 1;
                             tone.instrumentIndex = instrumentIndex;
                             tone.note = note;
@@ -13633,10 +13903,10 @@ li.select2-results__option[role=group] > strong:hover {
                         else {
                             const transition = instrument.getTransition();
                             if (((transition.isSeamless && !transition.slides && chord.strumParts == 0) || forceContinueAtStart) && (Config.ticksPerPart * note.start == currentTick) && prevNoteForThisInstrument != null) {
-                                this.moveTonesIntoOrderedTempMatchedList(toneList, note.pitches);
+                                this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
                             }
                             let strumOffsetParts = 0;
-                            for (let i = 0; i < note.pitches.length; i++) {
+                            for (let i = 0; i < filteredPitches.length; i++) {
                                 let prevNoteForThisTone = (tonesInPrevNote > i) ? prevNoteForThisInstrument : null;
                                 let noteForThisTone = note;
                                 let nextNoteForThisTone = (tonesInNextNote > i) ? nextNoteForThisInstrument : null;
@@ -19009,6 +19279,24 @@ li.select2-results__option[role=group] > strong:hover {
             super(doc);
             this._instrument.reverb = newValue;
             doc.synth.unsetMod(Config.modulators.dictionary["reverb"].index, doc.channel, doc.getCurrentInstrument());
+            doc.notifier.changed();
+            if (oldValue != newValue)
+                this._didSomething();
+        }
+    }
+    class ChangeUpperLimit extends ChangeInstrumentSlider {
+        constructor(doc, oldValue, newValue) {
+            super(doc);
+            this._instrument.upperNoteLimit = newValue;
+            doc.notifier.changed();
+            if (oldValue != newValue)
+                this._didSomething();
+        }
+    }
+    class ChangeLowerLimit extends ChangeInstrumentSlider {
+        constructor(doc, oldValue, newValue) {
+            super(doc);
+            this._instrument.lowerNoteLimit = newValue;
             doc.notifier.changed();
             if (oldValue != newValue)
                 this._didSomething();
@@ -26811,6 +27099,24 @@ You should be redirected to the song at:<br /><br />
             }
             return text;
         }
+        static getPitchNameAlwaysOctave(pitchNameIndex, scaleIndex, baseVisibleOctave) {
+            let text;
+            if (Config.keys[pitchNameIndex].isWhiteKey) {
+                text = Config.keys[pitchNameIndex].name;
+            }
+            else {
+                const shiftDir = Config.blackKeyNameParents[scaleIndex % Config.pitchesPerOctave];
+                text = Config.keys[(pitchNameIndex + Config.pitchesPerOctave + shiftDir) % Config.pitchesPerOctave].name;
+                if (shiftDir == 1) {
+                    text += "♭";
+                }
+                else if (shiftDir == -1) {
+                    text += "♯";
+                }
+            }
+            text += Math.floor(scaleIndex / 12) + baseVisibleOctave;
+            return text;
+        }
     }
 
     const { button: button$9, div: div$9, span: span$3, h2: h2$9, input: input$7, br: br$3, select: select$3, option: option$3 } = HTML;
@@ -27300,7 +27606,7 @@ You should be redirected to the song at:<br /><br />
     class ThemePrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._themeSelect = select$6({ style: "width: 100%;" }, option$6({ value: "dark classic" }, "BeepBox Dark"), option$6({ value: "light classic" }, "BeepBox Light"), option$6({ value: "dark competition" }, "BeepBox Competition Dark"), option$6({ value: "jummbox classic" }, "JummBox Dark"), option$6({ value: "forest" }, "Forest"), option$6({ value: "canyon" }, "Canyon"), option$6({ value: "midnight" }, "Midnight"), option$6({ value: "beachcombing" }, "Beachcombing"), option$6({ value: "violet verdant" }, "Violet Verdant"), option$6({ value: "sunset" }, "Sunset"), option$6({ value: "autumn" }, "Autumn"), option$6({ value: "fruit" }, "Shadowfruit"), option$6({ value: "toxic" }, "Toxic"), option$6({ value: "roe" }, "Roe"), option$6({ value: "moonlight" }, "Moonlight"), option$6({ value: "portal" }, "Portal"), option$6({ value: "fusion" }, "Fusion"), option$6({ value: "inverse" }, "Inverse"), option$6({ value: "nebula" }, "Nebula"), option$6({ value: "roe light" }, "Roe Light"), option$6({ value: "energized" }, "Energized"), option$6({ value: "neapolitan" }, "Neapolitan"), option$6({ value: "mono" }, "Mono"));
+            this._themeSelect = select$6({ style: "width: 100%;" }, option$6({ value: "dark classic" }, "BeepBox Dark"), option$6({ value: "light classic" }, "BeepBox Light"), option$6({ value: "dark competition" }, "BeepBox Competition Dark"), option$6({ value: "jummbox classic" }, "JummBox Dark"), option$6({ value: "forest" }, "Forest"), option$6({ value: "canyon" }, "Canyon"), option$6({ value: "midnight" }, "Midnight"), option$6({ value: "beachcombing" }, "Beachcombing"), option$6({ value: "violet verdant" }, "Violet Verdant"), option$6({ value: "sunset" }, "Sunset"), option$6({ value: "autumn" }, "Autumn"), option$6({ value: "fruit" }, "Shadowfruit"), option$6({ value: "toxic" }, "Toxic"), option$6({ value: "roe" }, "Roe"), option$6({ value: "moonlight" }, "Moonlight"), option$6({ value: "portal" }, "Portal"), option$6({ value: "fusion" }, "Fusion"), option$6({ value: "inverse" }, "Inverse"), option$6({ value: "nebula" }, "Nebula"), option$6({ value: "roe light" }, "Roe Light"), option$6({ value: "energized" }, "Energized"), option$6({ value: "neapolitan" }, "Neapolitan"), option$6({ value: "mono" }, "Mono"), option$6({ value: "dogebox classic" }, "Dogebox Classic"), option$6({ value: "dogebox2" }, "Dogebox2"));
             this._cancelButton = button$c({ class: "cancelButton" });
             this._okayButton = button$c({ class: "okayButton", style: "width:45%;" }, "Okay");
             this.container = div$c({ class: "prompt noSelection", style: "width: 220px;" }, h2$c("Set Theme"), div$c({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$c({ class: "selectContainer", style: "width: 100%;" }, this._themeSelect)), div$c({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
@@ -27419,7 +27725,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "instrumentType":
                     {
-                        message = div$d(h2$d("Instrument Type"), p$4("JummBox comes with many instrument presets, try them out! You can also create your own custom instruments!"), p$4("There are also options for copying and pasting instrument settings and for generating random instruments at the top of the instrument type menu."));
+                        message = div$d(h2$d("Instrument Type"), p$4("Dogebox2 comes with many instrument presets, try them out! You can also create your own custom instruments!"), p$4("There are also options for copying and pasting instrument settings and for generating random instruments at the top of the instrument type menu."));
                     }
                     break;
                 case "eqFilter":
@@ -27444,12 +27750,12 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "chipWave":
                     {
-                        message = div$d(h2$d("Chip Wave"), p$4("JummBox comes with some sound waves based on classic electronic sound chips, as well as several unique waves. This is the basic source of the sound of the instrument, which is modified by the other instrument settings."));
+                        message = div$d(h2$d("Chip Wave"), p$4("Dogebox2 comes with some sound waves based on classic electronic sound chips, as well as several unique waves. This is the basic source of the sound of the instrument, which is modified by the other instrument settings."));
                     }
                     break;
                 case "chipNoise":
                     {
-                        message = div$d(h2$d("Noise"), p$4("JummBox comes with several basic noise sounds. These do not have any distinct musical pitch, and can be used like drums to create beats and emphasize your song's rhythm."));
+                        message = div$d(h2$d("Noise"), p$4("Dogebox2 comes with several basic noise sounds. These do not have any distinct musical pitch, and can be used like drums to create beats and emphasize your song's rhythm."));
                     }
                     break;
                 case "pulseWidth":
@@ -27464,7 +27770,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "chords":
                     {
-                        message = div$d(h2$d("Chords"), p$4("When multiple different notes occur at the same time, this is called a chord. Chords can be created in JummBox's pattern editor by adding notes above or below another note."), p$4("This setting determines how chords are played. The standard option is \"simultaneous\" which starts playing all of the pitches in a chord at the same instant. The \"strum\" option is similar, but plays the notes starting at slightly different times. The \"arpeggio\" option is used in \"chiptune\" style music and plays a single tone that rapidly alternates between all of the pitches in the chord."), p$4("Some JummBox instruments have an option called \"custom interval\" which uses the chord notes to control the interval between the waves of a single tone. This can create strange sound effects when combined with FM modulators."));
+                        message = div$d(h2$d("Chords"), p$4("When multiple different notes occur at the same time, this is called a chord. Chords can be created in Dogebox2's pattern editor by adding notes above or below another note."), p$4("This setting determines how chords are played. The standard option is \"simultaneous\" which starts playing all of the pitches in a chord at the same instant. The \"strum\" option is similar, but plays the notes starting at slightly different times. The \"arpeggio\" option is used in \"chiptune\" style music and plays a single tone that rapidly alternates between all of the pitches in the chord."), p$4("Some Dogebox2 instruments have an option called \"custom interval\" which uses the chord notes to control the interval between the waves of a single tone. This can create strange sound effects when combined with FM modulators."));
                     }
                     break;
                 case "vibrato":
@@ -27634,7 +27940,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "aliases":
                     {
-                        message = div$d(h2$d("Aliasing"), p$4("JummBox applies a technique called 'anti-aliasing' to instruments normally to help them sound cleaner even at high frequencies and low sample rates."), p$4("When this setting is ticked that technique is disabled, so you may hear strange audio artifacts especially at high pitches and when bending notes. However, this can lend a grungy sound to an instrument that could be desirable."));
+                        message = div$d(h2$d("Aliasing"), p$4("Dogebox2 applies a technique called 'anti-aliasing' to instruments normally to help them sound cleaner even at high frequencies and low sample rates."), p$4("When this setting is ticked that technique is disabled, so you may hear strange audio artifacts especially at high pitches and when bending notes. However, this can lend a grungy sound to an instrument that could be desirable."));
                     }
                     break;
                 case "operatorWaveform":
@@ -27649,7 +27955,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "filterCutoff":
                     {
-                        message = div$d(h2$d("Low-Pass Filter Cutoff Frequency"), p$4("The lowest setting feels \"muffled\" or \"dark\", and the highest setting feels \"harsh\" or \"bright\"."), p$4("Most sounds include a range of frequencies from low to high. JummBox instruments have a filter that allows the lowest frequencies to pass through at full volume, but can reduce the volume of the higher frequencies that are above a cutoff frequency. This setting controls the cutoff frequency and thus the range of higher frequencies that are reduced."), p$4("This cutoff setting also determines which frequency resonates when the resonance peak setting is used."));
+                        message = div$d(h2$d("Low-Pass Filter Cutoff Frequency"), p$4("The lowest setting feels \"muffled\" or \"dark\", and the highest setting feels \"harsh\" or \"bright\"."), p$4("Most sounds include a range of frequencies from low to high. Dogebox2 instruments have a filter that allows the lowest frequencies to pass through at full volume, but can reduce the volume of the higher frequencies that are above a cutoff frequency. This setting controls the cutoff frequency and thus the range of higher frequencies that are reduced."), p$4("This cutoff setting also determines which frequency resonates when the resonance peak setting is used."));
                     }
                     break;
                 case "filterResonance":
@@ -27660,6 +27966,16 @@ You should be redirected to the song at:<br /><br />
                 case "invertWave":
                     {
                         message = div$d(h2$d("Invert Wave"), p$4("Flips the troughs and peaks of the waveform in this instrument, inverting its wave. This is for \"phase cancellation\" which is a phenomenon that occurs 2 waves of the same instrument but opposite inverts cancel out each other, perfect for isolating a specific sound such as reverb."), p$4("If this setting is used on its own and not with another instrument, you will not notice a difference, it is useless if you do not know what you are doing (see: the first paragraph)."));
+                    }
+                    break;
+                case "upperNoteLimit":
+                    {
+                        message = div$d(h2$d("Upper Note Limit"), p$4("Defines the upper limit in which notes will play, useful for advanced instruments."));
+                    }
+                    break;
+                case "lowerNoteLimit":
+                    {
+                        message = div$d(h2$d("Lower Note Limit"), p$4("Defines the lower limit in which notes will play, useful for advanced instruments."));
                     }
                     break;
                 default:
@@ -28210,6 +28526,7 @@ You should be redirected to the song at:<br /><br />
             menu.appendChild(option$7({ value: 3 }, EditorConfig.valueToPreset(3).name));
             menu.appendChild(option$7({ value: 1 }, EditorConfig.valueToPreset(1).name));
             menu.appendChild(option$7({ value: 8 }, EditorConfig.valueToPreset(8).name));
+            menu.appendChild(option$7({ value: 2 }, EditorConfig.valueToPreset(2).name));
         }
         const randomGroup = optgroup({ label: "Randomize ▾" });
         randomGroup.appendChild(option$7({ value: "randomPreset" }, "Random Preset"));
@@ -28512,6 +28829,10 @@ You should be redirected to the song at:<br /><br />
             this._modulatorGroup = div$e({ class: "editor-controls" });
             this._invertWaveBox = input$9({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
             this._invertWaveRow = div$e({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("invertWave") }, "Invert Wave:"), this._invertWaveBox);
+            this._upperNoteLimitInputBox = input$9({ style: "width: 4em; font-size: 80%; ", id: "upperNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+            this._upperNoteLimitRow = div$e({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("upperNoteLimit") }, "Upper Note Limit:"), this._upperNoteLimitInputBox);
+            this._lowerNoteLimitInputBox = input$9({ style: "width: 4em; font-size: 80%; ", id: "owerNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+            this._lowerNoteLimitRow = div$e({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("lowerNoteLimit") }, "Lower Note Limit:"), this._lowerNoteLimitInputBox);
             this._instrumentCopyButton = button$e({ style: "max-width:86px; width: 86px;", class: "copyButton" }, [
                 "Copy",
                 SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
@@ -28536,7 +28857,7 @@ You should be redirected to the song at:<br /><br />
             this._feedbackAmplitudeSlider = new Slider(input$9({ type: "range", min: "0", max: Config.operatorAmplitudeMax, value: "0", step: "1", title: "Feedback Amplitude" }), this._doc, (oldValue, newValue) => new ChangeFeedbackAmplitude(this._doc, oldValue, newValue), false);
             this._feedbackRow2 = div$e({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("feedbackVolume") }, "Fdback Vol:"), this._feedbackAmplitudeSlider.container);
             this._addEnvelopeButton = button$e({ type: "button", class: "add-envelope" });
-            this._customInstrumentSettingsGroup = div$e({ class: "editor-controls" }, this._panSliderRow, this._panDropdownGroup, this._chipWaveSelectRow, this._chipNoiseSelectRow, this._customWaveDraw, this._eqFilterTypeRow, this._eqFilterRow, this._eqFilterSimpleCutRow, this._eqFilterSimplePeakRow, this._fadeInOutRow, this._algorithmSelectRow, this._phaseModGroup, this._feedbackRow1, this._feedbackRow2, this._spectrumRow, this._harmonicsRow, this._drumsetGroup, this._pulseWidthRow, this._stringSustainRow, this._unisonSelectRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("effects") }, "Effects")), div$e({ class: "effects-menu" }, this._effectsSelect)), this._transitionRow, this._transitionDropdownGroup, this._chordSelectRow, this._chordDropdownGroup, this._pitchShiftRow, this._detuneSliderRow, this._vibratoSelectRow, this._vibratoDropdownGroup, this._noteFilterTypeRow, this._noteFilterRow, this._noteFilterSimpleCutRow, this._noteFilterSimplePeakRow, this._distortionRow, this._aliasingRow, this._bitcrusherQuantizationRow, this._bitcrusherFreqRow, this._chorusRow, this._echoSustainRow, this._echoDelayRow, this._reverbRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("envelopes") }, "Envelopes")), this._addEnvelopeButton), this._envelopeEditor.container, this._invertWaveRow);
+            this._customInstrumentSettingsGroup = div$e({ class: "editor-controls" }, this._panSliderRow, this._panDropdownGroup, this._chipWaveSelectRow, this._chipNoiseSelectRow, this._customWaveDraw, this._eqFilterTypeRow, this._eqFilterRow, this._eqFilterSimpleCutRow, this._eqFilterSimplePeakRow, this._fadeInOutRow, this._algorithmSelectRow, this._phaseModGroup, this._feedbackRow1, this._feedbackRow2, this._spectrumRow, this._harmonicsRow, this._drumsetGroup, this._pulseWidthRow, this._stringSustainRow, this._unisonSelectRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("effects") }, "Effects")), div$e({ class: "effects-menu" }, this._effectsSelect)), this._transitionRow, this._transitionDropdownGroup, this._chordSelectRow, this._chordDropdownGroup, this._pitchShiftRow, this._detuneSliderRow, this._vibratoSelectRow, this._vibratoDropdownGroup, this._noteFilterTypeRow, this._noteFilterRow, this._noteFilterSimpleCutRow, this._noteFilterSimplePeakRow, this._distortionRow, this._aliasingRow, this._bitcrusherQuantizationRow, this._bitcrusherFreqRow, this._chorusRow, this._echoSustainRow, this._echoDelayRow, this._reverbRow, this._upperNoteLimitRow, this._lowerNoteLimitRow, this._invertWaveRow, div$e({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` }, span$4({ style: `flex-grow: 1; text-align: center;` }, span$4({ class: "tip", onclick: () => this._openPrompt("envelopes") }, "Envelopes")), this._addEnvelopeButton), this._envelopeEditor.container);
             this._instrumentCopyGroup = div$e({ class: "editor-controls" }, div$e({ class: "selectRow" }, this._instrumentCopyButton, this._instrumentPasteButton));
             this._instrumentSettingsTextRow = div$e({ id: "instrumentSettingsText", style: `padding: 3px 0; max-width: 15em; text-align: center; color: ${ColorConfig.secondaryText};` }, "Instrument Settings");
             this._instrumentTypeSelectRow = div$e({ class: "selectRow", id: "typeSelectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("instrumentType") }, "Type:"), div$e(div$e({ class: "pitchSelect" }, this._pitchedPresetSelect), div$e({ class: "drumSelect" }, this._drumPresetSelect)));
@@ -29001,6 +29322,23 @@ You should be redirected to the song at:<br /><br />
                     else {
                         this._reverbRow.style.display = "none";
                     }
+                    if (effectsIncludeNoteRange(instrument.effects)) {
+                        this._upperNoteLimitRow.style.display = "";
+                        this._lowerNoteLimitRow.style.display = "";
+                        this._upperNoteLimitInputBox.value = String(instrument.upperNoteLimit);
+                        this._lowerNoteLimitInputBox.value = String(instrument.lowerNoteLimit);
+                    }
+                    else {
+                        this._upperNoteLimitRow.style.display = "none";
+                        this._lowerNoteLimitRow.style.display = "none";
+                    }
+                    if (effectsIncludeInvertWave(instrument.effects)) {
+                        this._invertWaveRow.style.display = "";
+                        this._invertWaveBox.checked = instrument.invertWave ? true : false;
+                    }
+                    else {
+                        this._invertWaveRow.style.display = "none";
+                    }
                     if (instrument.type == 0 || instrument.type == 8 || instrument.type == 5 || instrument.type == 7) {
                         this._unisonSelectRow.style.display = "";
                         setSelectedValue(this._unisonSelect, instrument.unison);
@@ -29008,7 +29346,6 @@ You should be redirected to the song at:<br /><br />
                     else {
                         this._unisonSelectRow.style.display = "none";
                     }
-                    this._invertWaveRow.style.display = "";
                     this._envelopeEditor.render();
                     for (let chordIndex = 0; chordIndex < Config.chords.length; chordIndex++) {
                         let hidden = (!Config.instrumentTypeHasSpecialInterval[instrument.type] && Config.chords[chordIndex].customInterval);
@@ -29046,6 +29383,10 @@ You should be redirected to the song at:<br /><br />
                     this._eqFilterSimplePeakSlider.updateValue(instrument.eqFilterSimplePeak);
                     this._noteFilterSimpleCutSlider.updateValue(instrument.noteFilterSimpleCut);
                     this._noteFilterSimplePeakSlider.updateValue(instrument.noteFilterSimplePeak);
+                    this._upperNoteLimitRow.firstChild.textContent = "Upper Note Limit [" + Piano.getPitchNameAlwaysOctave((instrument.upperNoteLimit + Config.keys[this._doc.song.key].basePitch) % Config.pitchesPerOctave, instrument.upperNoteLimit, 0)
+                        + "]:";
+                    this._lowerNoteLimitRow.firstChild.textContent = "Lower Note Limit [" + Piano.getPitchNameAlwaysOctave((instrument.lowerNoteLimit + Config.keys[this._doc.song.key].basePitch) % Config.pitchesPerOctave, instrument.lowerNoteLimit, 0)
+                        + "]:";
                     if (instrument.type == 8) {
                         this._customWaveDrawCanvas.redrawCanvas();
                         if (this.prompt instanceof CustomChipPrompt) {
@@ -29174,8 +29515,8 @@ You should be redirected to the song at:<br /><br />
                                 settingList.push("note volume");
                                 settingList.push("mix volume");
                                 let tgtInstrumentTypes = [];
-                                let anyInstrumentAdvancedEQ = false, anyInstrumentSimpleEQ = false, anyInstrumentAdvancedNote = false, anyInstrumentSimpleNote = false, anyInstrumentArps = false, anyInstrumentPitchShifts = false, anyInstrumentDetunes = false, anyInstrumentVibratos = false, anyInstrumentNoteFilters = false, anyInstrumentDistorts = false, anyInstrumentBitcrushes = false, anyInstrumentPans = false, anyInstrumentChorus = false, anyInstrumentEchoes = false, anyInstrumentReverbs = false;
-                                let allInstrumentNoteFilters = true, allInstrumentDetunes = true, allInstrumentVibratos = true, allInstrumentDistorts = true, allInstrumentBitcrushes = true, allInstrumentPans = true, allInstrumentChorus = true, allInstrumentEchoes = true, allInstrumentReverbs = true;
+                                let anyInstrumentAdvancedEQ = false, anyInstrumentSimpleEQ = false, anyInstrumentAdvancedNote = false, anyInstrumentSimpleNote = false, anyInstrumentArps = false, anyInstrumentPitchShifts = false, anyInstrumentDetunes = false, anyInstrumentVibratos = false, anyInstrumentNoteFilters = false, anyInstrumentDistorts = false, anyInstrumentBitcrushes = false, anyInstrumentPans = false, anyInstrumentChorus = false, anyInstrumentEchoes = false, anyInstrumentReverbs = false, anyInstrumentNoteRanges = false, anyInstrumentInvertWaves = false;
+                                let allInstrumentNoteFilters = true, allInstrumentDetunes = true, allInstrumentVibratos = true, allInstrumentDistorts = true, allInstrumentBitcrushes = true, allInstrumentPans = true, allInstrumentChorus = true, allInstrumentEchoes = true, allInstrumentReverbs = true, allInstrumentNoteRanges = true, allInstrumentInvertWaves = true;
                                 let instrumentCandidates = [];
                                 if (modInstrument >= channel.instruments.length) {
                                     for (let i = 0; i < channel.instruments.length; i++) {
@@ -29256,6 +29597,18 @@ You should be redirected to the song at:<br /><br />
                                     }
                                     else {
                                         allInstrumentReverbs = false;
+                                    }
+                                    if (effectsIncludeNoteRange(channel.instruments[instrumentIndex].effects)) {
+                                        anyInstrumentNoteRanges = true;
+                                    }
+                                    else {
+                                        allInstrumentNoteRanges = false;
+                                    }
+                                    if (effectsIncludeNoteRange(channel.instruments[instrumentIndex].effects)) {
+                                        anyInstrumentInvertWaves = true;
+                                    }
+                                    else {
+                                        allInstrumentInvertWaves = false;
                                     }
                                 }
                                 if (anyInstrumentAdvancedEQ) {
@@ -29352,6 +29705,18 @@ You should be redirected to the song at:<br /><br />
                                 }
                                 if (!allInstrumentReverbs) {
                                     unusedSettingList.push("+ reverb");
+                                }
+                                if (anyInstrumentNoteRanges) {
+                                    settingList.push("note range");
+                                }
+                                if (!allInstrumentNoteRanges) {
+                                    unusedSettingList.push("+ note range");
+                                }
+                                if (anyInstrumentInvertWaves) {
+                                    settingList.push("invert wave");
+                                }
+                                if (!allInstrumentInvertWaves) {
+                                    unusedSettingList.push("+ invert wave");
                                 }
                             }
                             buildOptions(this._modSetBoxes[mod], settingList);
@@ -30779,6 +31144,8 @@ You should be redirected to the song at:<br /><br />
             this._clicklessTransitionBox.addEventListener("input", () => { this._doc.record(new ChangeClicklessTransition(this._doc, this._clicklessTransitionBox.checked)); });
             this._aliasingBox.addEventListener("input", () => { this._doc.record(new ChangeAliasing(this._doc, this._aliasingBox.checked)); });
             this._invertWaveBox.addEventListener("input", () => { this._doc.record(new ChangeInvertWave(this._doc, this._invertWaveBox.checked)); });
+            this._upperNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeUpperLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].upperNoteLimit, (+this._upperNoteLimitInputBox.value))); });
+            this._lowerNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeLowerLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].lowerNoteLimit, (+this._lowerNoteLimitInputBox.value))); });
             this._promptContainer.addEventListener("click", (event) => {
                 if (event.target == this._promptContainer) {
                     this._doc.undo();
