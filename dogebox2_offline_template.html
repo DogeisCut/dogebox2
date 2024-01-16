@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <link rel='shortcut icon' type='image/x-icon' href='./favicon.ico' />
@@ -10,11 +10,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.7/js/select2.min.js"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dogebox2</title>
-    <meta name="application-name" content="Dogebox2" />
-    <meta name="apple-mobile-web-app-title" content="Dogebox2">
-	<meta name="description" content="Dogebox2 is an online tool for sketching and sharing instrumental music." />
-    <meta name="keywords" content="chiptune, instrumental, music, song, melody, composition, tool, free, square wave, NES, NSF, Dogebox, dogebox, Dogebox2, dogebox2, JummBox, jummbox, BeepBox, beepbox" />
+    <title>JummBox</title>
+    <meta name="application-name" content="JummBox" />
+    <meta name="apple-mobile-web-app-title" content="JummBox">
+    <meta name="description" content="JummBox is an online tool for sketching and sharing instrumental melodies." />
+    <meta name="keywords" content="chiptune, instrumental, music, song, melody, composition, tool, free, square wave, NES, NSF, JummBox, jummbox, BeepBox, beepbox" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -25,8 +25,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icon_32.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link href="https://fonts.googleapis.com/css?family=B612" rel="stylesheet" media="none" onload="if (this.media != 'all') this.media='all';" /> <!-- this is a trick to load CSS asynchronously. -->
-    <style type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=B612" rel="stylesheet" rel="stylesheet" media="none" onload="if (this.media != 'all') this.media='all';" /> <!-- this is a trick to load CSS asynchronously. -->
+    <meta name="robots" content="noindex, nofollow" />
+	<style type="text/css">
 
         html {
             background: var(--page-margin, black);
@@ -51,7 +52,7 @@
             overflow: auto;
             background: var(--editor-background, black);
             width: 100%;
-			max-width: 710px;
+            max-width: 700px;
             padding-left: 30px;
             padding-right: 30px;
         }
@@ -60,7 +61,7 @@
             overflow: auto;
             background: var(--editor-background, black);
             width: 100%;
-			max-width: 710px;
+            max-width: 700px;
             padding-left: 30px;
             padding-right: 30px;
         }
@@ -95,6 +96,7 @@
 
         .donation input[type="submit"] {
             -webkit-appearance: none;
+            appearance: none;
             background: none;
             border: none;
             font-family: inherit;
@@ -107,7 +109,7 @@
         }
 
         /* wide screen */
-		@media (min-width: 711px) {
+        @media (min-width: 701px) {
             html {
                 width: 100%;
             }
@@ -117,23 +119,22 @@
             }
 
             .column-container {
-				width: 710px;
+                width: 700px;
                 display: flex;
-				gap: 25px;
+                justify-content: space-between;
             }
 
-            .instructions-column {
-				min-width: 0;
+            /*.instructions-column {
+                width: 375px;
             }
 
             .twitter-column {
                 width: 300px;
-				flex-shrink: 0;
-            }
+            }*/
         }
 
         /* narrow screen */
-		@media (max-width: 710px) {
+        @media (max-width: 700px) {
             body {
                 width: 100%;
             }
@@ -154,26 +155,22 @@
 <body>
     <div id="beepboxEditorContainer">
         <noscript>
-            Sorry, Dogebox2 requires a JavaScript-enabled browser.
+            Sorry, JummBox requires a JavaScript-enabled browser.
         </noscript>
     </div>
     <div id="text-content">
         <section>
 
             <h1>
-                <font color="#AB382C">Dogebox2</font>
-                <span id="dogebox2FastFood" style="display: inline; color:#ffd829"></span>
+                <font color="#9c64f7">JummBox Offline</font>
+                <div id="jummboxPlant" style="display: inline; color:#62a13b"></div>
             </h1>
-            
             <p id="introduction">
-                This is an online tool for sketching and sharing chiptune melodies.<br>
-                It is a modification of <a href="https://jummb.us/">original JummBox</a> by Jummbus.
+                This is an online (and offline!) tool for sketching and sharing chiptune melodies.<br>
+                It is a modification of the <a href="https://www.beepbox.co/">original BeepBox</a> by John Nesky.
             </p>
             <p>
                 If you're familiar with BeepBox and just want to learn what JummBox does differently, check out this <a href="https://youtu.be/26yDP4ACuzE">overview video</a>.
-            </p>
-            <p>
-                If you're familiar with JummBox and just want to learn what Dogebox2 does differently, look at its <a href="https://beepbox.miraheze.org/wiki/Dogebox2">wiki page</a>.
             </p>
             <p>
                 All song data is contained in the URL at the top of your browser.
@@ -181,17 +178,17 @@
                 When you are satisfied with your song, just copy and paste the URL to save and share your song!
             </p>
             <!--
-    <div class="donation">
-        BeepBox is a passion project, and will always be free to use. If you find it valuable and have the means, any gratuity via
-        <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
-            <input type="hidden" name="cmd" value="_donations" />
-            <input type="hidden" name="business" value="QZJTX9GRYEV9N" />
-            <input type="hidden" name="currency_code" value="USD" />
-            <input type="submit" name="submit" value="Paypal"/>
-        </form>
-        would be appreciated!
-    </div>
-    -->
+            <div class="donation">
+                BeepBox is a passion project, and will always be free to use. If you find it valuable and have the means, any gratuity via
+                <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                    <input type="hidden" name="cmd" value="_donations" />
+                    <input type="hidden" name="business" value="QZJTX9GRYEV9N" />
+                    <input type="hidden" name="currency_code" value="USD" />
+                    <input type="submit" name="submit" value="Paypal"/>
+                </form>
+                would be appreciated!
+            </div>
+            -->
         </section>
 
         <div class="column-container">
@@ -202,17 +199,17 @@
                     </h2>
                     <p>
                         You can add or remove notes by clicking on the gray rows at the top.
-                        Dogebox2 automatically plays the notes out loud for you. Try it!
+                        JummBox automatically plays the notes out loud for you. Try it!
                     </p>
                     <p>
                         Notes go into patterns, and you can edit one pattern at a time.
                         Those numbered boxes at the bottom of the editor are the different patterns you can edit.
                         <span id="bar-editing">
-                            Click the boxes to move to a different part of the song, or click the arrows on the currently selected box to swap which pattern is played during that part of the song.
+                            Click the other boxes to move to a different part of the song, or click the arrows on the currently selected box to swap which pattern is played during that part of the song.
                         </span>
                     </p>
                     <p>
-                        Dogebox2 can play several rows of patterns simultaneously, and each row has its own set of patterns.
+                        JummBox can play several rows of patterns simultaneously, and each row has its own set of patterns.
                         Most rows can play melodies or harmonies, but the bottom row is for drums.
                     </p>
                     <p>
@@ -223,21 +220,31 @@
 
                     <div id="keyboard-instructions">
                         <p>
-                            When Dogebox2 has focus (click on its interface above), you can use these keyboard shortcuts: <br />
+                            When JummBox has focus (click on its interface above), you can use these keyboard shortcuts: <br />
                         </p>
                         <ul>
                             <li>Spacebar: play or pause the song</li>
-                            <li><b>Shift Spacebar</b>: play from mouse location</li>
-							<li><b>Z</b>: undo, <b>Y or Shift Z</b>: redo</li>
+                            <li>Z: undo</li>
+                            <li>Y or Shift Z: redo</li>
                             <li>C: copy pattern from selection</li>
                             <li>V: paste pattern into selection</li>
-                            <li><b>0-9</b>: assign pattern number to selection</li>
-							<li><b>Arrows</b>: move selection</li>
-							<li><b>Ctrl + Arrows</b>: rearrange channels</li>
-							<li><b>[ ]</b>: move playhead backward or forward</li>
-							<li><b>F/H</b>: move to First or Highlighted pattern </li>
-							<li><b>Shift & Drag</b>: select part of a pattern (long press on touch screen)</li>
-							<li>These are just a few shortcuts, check Dogebox2's edit menu for more!</li>
+                            <li>0-9: assign a pattern number to selection</li>
+                            <li>Arrows: move selection</li>
+                            <li>[ ]: Move the playhead backward and forward</li>
+                            <li>Shift 0-9: reassign the instrument for the currently selected pattern </li>
+                            <li>- +: move the notes in the pattern up or down (and hold Shift to move an octave at a time!)</li>
+                            <li>A: Select all patterns</li>
+                            <li>Shift A: Select current channel</li>
+                            <li>Enter: insert a bar</li>
+                            <li>Backspace: delete a bar</li>
+							<li>Shift & Drag: select part of a pattern (long press on touch screen)</li>
+                            <li>F: move playhead to the <b>F</b>irst bar in the song</li>
+                            <li>H: move playhead to the selected bar (<b>H</b>ere)</li>
+                            <li>M: <b>M</b>ute/unmute current channel</li>
+                            <li>Shift M: <b>M</b>ute/unmute all channels
+                            <li>S: <b>S</b>olo current channel</li>
+                            <li>N: set pattern to the lowest-numbered one not used anywhere in the song (This can help you find gaps in patterns that you missed).</li>
+                            <li>Shift N: set pattern to the lowest-numbered one that is completely empty.</li>
                         </ul>
                     </div>
                     <p>
@@ -252,7 +259,12 @@
 
                     </p>
                     <p>
-                        <a href="https://twitter.com/beepboxco" target="_blank">Check out some of these songs that other people have posted on Twitter!</a>
+                        JummBox has many more features.
+                        Try playing with the buttons and menus on the right side to find out what it can do!
+                        You can also click on the label next to each option for a description of what it does.
+                    </p>
+                    <p>
+                        <a href="https://twitter.com/beepboxco">Check out some of these songs that other people have posted on Twitter!</a>
                         If you find something you like, you should let the creator know!
                         And if you see any beginners asking for advice, maybe you can help them!
                     </p>
@@ -262,25 +274,21 @@
                         About
                     </h2>
                     <p>
-                        Dogebox2 is developed by DogeisCut. You can find him at <a href="https://twitter.com/dogeiscut" target="_blank">twitter.com/dogeiscut</a>.<br><br>
-                        JummBox is developed by Jummbus. You can find him sporadically at <a href="https://twitter.com/jummbus" target="_blank">twitter.com/jummbus</a>.<br><br>
-                        BeepBox was originally developed by <a href="http://www.johnnesky.com" target="_blank">John Nesky</a>, also known as <a href="https://twitter.com/shaktool" target="_blank">@shaktool</a>.
+                        JummBox is developed by Jummbus. You can find him sporadically at <a href="https://twitter.com/jummbus">twitter.com/jummbus</a>.<br><br>
+                        BeepBox was originally developed by <a href="http://www.johnnesky.com">John Nesky</a>, also known as <a href="https://twitter.com/shaktool">@shaktool</a>.
                     </p>
                     <p>
-                        Dogebox2 does not claim ownership over songs created with it, so original songs belong to their authors.
+                        JummBox does not claim ownership over songs created with it, so original songs belong to their authors.
                     </p>
                     <p>
-                        Neither Jummbus nor DogeisCut assume responsibility for any copyrighted material played on Dogebox2. No songs are ever received, recorded, or distributed by Dogebox2's servers. All song data is contained in the URL after the hash (#) mark, and Dogebox2 running inside your browser converts that data into sound waves.
-                    </p>
-                    <p>
-                        Dogebox2 does not collect, track, or share any user data.
+                        Neither Jummbus nor Jummbox assume responsibility for any copyrighted material played on JummBox. No songs are ever received, recorded, or distributed by JummBox's servers. All song data is contained in the URL after the hash (#) mark, and JummBox running inside your browser converts that data into sound waves.
                     </p>
                     <p id="offline-instructions">
-                        You can download <a download="dogebox2_offline.html" href="dogebox2_offline.html">an offline version of Dogebox2</a> to use when you don't have access to the internet. The features are otherwise the same.
+                        You can download <a download="jummbox_offline.html" href="jummbox_offline.html">an offline version of JummBox</a> to use when you don't have access to the internet. The features are otherwise the same.
                     </p>
                     <p>
-                        You can download and use <a href="https://github.com/DogeisCut/dogebox2_typescript" target="_blank">the source code</a> under the MIT license.
-                        The original BeepBox source code by John Nesky can be found <a href="https://github.com/johnnesky/beepbox" target="_blank">here</a>.
+                        You can download and use <a href="https://github.com/jummbus/jummbox">the source code</a> under the MIT license.
+                        The original BeepBox source code by John Nesky can be found <a href="https://github.com/johnnesky/beepbox">here</a>.
                     </p>
                 </section>
             </main>
@@ -298,62 +306,29 @@
         if (Math.floor(Math.random() * 10) == 0) {
             switch (Math.floor(Math.random() * 4)) {
                 case 0:
-                    document.getElementById("dogebox2FastFood").innerHTML = "  🍕";
+                    document.getElementById("jummboxPlant").innerHTML = "  🍂";
                     break;
                 case 1:
-                    document.getElementById("dogebox2FastFood").innerHTML = "  🌭";
+                    document.getElementById("jummboxPlant").innerHTML = "  🌿";
                     break;
                 case 2:
-                    document.getElementById("dogebox2FastFood").innerHTML = "  🍔";
+                    document.getElementById("jummboxPlant").innerHTML = "  🌺";
                     break;
                 case 3:
-                    document.getElementById("dogebox2FastFood").innerHTML = "  🍟";
+                    document.getElementById("jummboxPlant").innerHTML = "  🍃";
                     break;
             }
         }
 
         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|android|ipad|playbook|silk/i.test(navigator.userAgent)) {
-            document.getElementById("introduction").innerHTML = "Dogebox2 is an online tool for sketching and sharing chiptune melodies. Make sure that your volume is turned up, then press the play button!";
+            document.getElementById("introduction").innerHTML = "JummBox is an online tool for sketching and sharing chiptune melodies. Make sure that your volume is turned up, then press the play button!";
             document.getElementById("keyboard-instructions").style.display = "none";
-            document.getElementById("bar-editing").innerHTML = "Tap the boxes to move to a different part of the song, or tap on the currently selected box to swap which pattern is played during that part of the song.";
+            document.getElementById("bar-editing").innerHTML = "Tap the other boxes to move to a different part of the song, or tap on the currently selected box to swap which pattern is played during that part of the song.";
 			//document.getElementById("offline-instructions").innerHTML = 'You can use BeepBox when your device is offline if you put a shortcut to BeepBox on your home screen. <ul><li>Chrome: find the "Add to Home Screen" option in the ⋮ menu.</li><li>Firefox: find the "Add Page Shortcut" option in the ⋮ menu.</li><li>Safari: find the "Add to Home Screen" option in the bookmark menu.</li></ul>';
         }
 
-        function browserHasRequiredFeatures() {
-            "use strict";
-            if (window.AudioContext == undefined && window.webkitAudioContext == undefined) {
-                return false;
-            }
+        /* INSERT_BEEPBOX_SOURCE_HERE */
 
-            try {
-                eval("class T {}");
-                eval("const a = () => 0");
-                eval("for (const a of []);");
-            } catch (error) {
-                return false;
-            }
-
-            return true;
-        }
-
-        if (browserHasRequiredFeatures()) {
-            // Go ahead and load js beepbox editor interface:
-            var fileref = document.createElement("script");
-            fileref.setAttribute("type", "text/javascript");
-            fileref.setAttribute("src", "beepbox_editor.min.js");
-            document.head.appendChild(fileref);
-        } else {
-            document.getElementById("beepboxEditorContainer").innerHTML = "Sorry, Dogebox2 doesn't support your browser. Try a recent version of Chrome, Firefox, Edge, Safari, or Opera.";
-        }
-
-		// If the page was loaded with an old song version that old versions of BeepBox support,
-		// update the links to the old versions so that they'll open the song.
-		if (/^#[1-6]/.test(location.hash)) {
-			document.getElementById("linkTo2_3").href += location.hash;
-		}
-		if (/^#[1-8]/.test(location.hash)) {
-			document.getElementById("linkTo3_0").href += location.hash;
-		}
     </script>
 </body>
 </html>

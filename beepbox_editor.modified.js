@@ -4523,8 +4523,6 @@ var beepbox = (function (exports) {
 				--mod4-primary-note: #b2fffb;
 				--disabled-note-primary: #c6c6c6;
 				--disabled-note-secondary: #8c8c8c;
-				--note-flash: #ffffff;
-				--note-flash-secondary: #ffffff77;
 				}
 			`,
     };
@@ -10470,7 +10468,7 @@ li.select2-results__option[role=group] > strong:hover {
                             else if ((beforeFive && fromJummBox)) {
                                 const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                                 instrument.pan = clamp(0, Config.panMax + 1, (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                                if (fromJummBox && !beforeThree || fromDogebox) {
+                                if ((fromJummBox && !beforeThree)) {
                                     instrument.panDelay = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                 }
                             }
@@ -18510,16 +18508,6 @@ li.select2-results__option[role=group] > strong:hover {
             this._didSomething();
         }
     }
-    class ChangeAppendInstrument extends ChangeGroup {
-        constructor(doc, channel, instrument) {
-            super();
-            let newInsturm = new Instrument(instrument["isDrum"], instrument["isMod"]);
-            newInsturm.fromJsonObject(instrument, instrument["isDrum"], instrument["isMod"], false, false);
-            channel.instruments.push(newInsturm);
-            this._didSomething();
-            doc.notifier.changed();
-        }
-    }
     class ChangeSetPatternInstruments extends Change {
         constructor(doc, channelIndex, instruments, pattern) {
             super();
@@ -21218,14 +21206,15 @@ li.select2-results__option[role=group] > strong:hover {
         }
     }
 
-    const { button: button$5, div: div$5, h2: h2$5, input: input$3, select: select$1, option: option$1 } = HTML;
+    const { button: button$5, div: div$5, h2: h2$5, input: input$3, label: label$2, br: br$3 } = HTML;
     class InstrumentImportPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._cancelButton = button$5({ class: "cancelButton" });
-            this._importStrategySelect = select$1({ style: "width: 100%;" }, option$1({ value: "append" }, "Append instruments to the end of the list."), option$1({ value: "replace" }, "Replace only the selected instrument."), option$1({ value: "all" }, "Replace all instruments in the channel."));
+            this._replaceBox = input$3({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._replaceSingleBox = input$3({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
             this._fileInput = input$3({ type: "file", accept: ".json,application/json" });
-            this.container = div$5({ class: "prompt noSelection", style: "width: 300px;" }, h2$5("Import Instrument(s)"), div$5({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$5({ class: "selectContainer", style: "width: 100%;" }, this._importStrategySelect)), this._fileInput, this._cancelButton);
+            this.container = div$5({ class: "prompt noSelection", style: "width: 250px;" }, h2$5("Import Instrument(s)"), label$2({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Replace all instruments", br$3(), "in channel:", this._replaceBox), label$2({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Replace only selected", br$3(), "instrument:", this._replaceSingleBox), this._fileInput, this._cancelButton);
             this._whenFileSelected = () => {
                 const file = this._fileInput.files[0];
                 if (!file)
@@ -21241,7 +21230,7 @@ li.select2-results__option[role=group] > strong:hover {
                                 alert("Instrument file contains multiple instruments! Please turn on pattern or layered instruments!");
                                 return;
                             }
-                            this._import_multiple(fileParsed);
+                            this._import_multiple();
                             return;
                         }
                         else {
@@ -21253,6 +21242,10 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 };
                 reader.readAsText(file);
+                this._close();
+            };
+            this._lol = () => {
+                this._replaceSingleBox.disabled = this._replaceBox.checked;
             };
             this._close = () => {
                 this._doc.undo();
@@ -21260,101 +21253,29 @@ li.select2-results__option[role=group] > strong:hover {
             this.cleanUp = () => {
                 this._fileInput.removeEventListener("change", this._whenFileSelected);
                 this._cancelButton.removeEventListener("click", this._close);
+                this._replaceBox.removeEventListener("change", this._lol);
             };
-            this._import_multiple = (file) => {
-                const channel = this._doc.song.channels[this._doc.channel];
-                const currentInstrum = channel.instruments[this._doc.getCurrentInstrument()];
-                switch (this._importStrategySelect.value) {
-                    case "replace":
-                        console.log("multi replace");
-                        const firstInstrum = file[0];
-                        this._doc.record(new ChangePasteInstrument(this._doc, currentInstrum, firstInstrum));
-                        for (let i = 1; i < file.length; i++) {
-                            const insturm = file[i];
-                            if (!this._validate_instrument_limit(channel)) {
-                                alert("Max instruments reached! Some instruments were not imported.");
-                                break;
-                            }
-                            this._doc.record(new ChangeAppendInstrument(this._doc, channel, insturm));
-                        }
-                        this._doc.record(new ChangeViewInstrument(this._doc, this._doc.getCurrentInstrument()));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
-                    case "all":
-                        console.log("multi all");
-                        channel.instruments.length = 0;
-                        for (let insturm of file) {
-                            if (!this._validate_instrument_limit(channel)) {
-                                alert("Max instruments reached! Some instruments were not imported.");
-                                break;
-                            }
-                            this._doc.record(new ChangeAppendInstrument(this._doc, channel, insturm));
-                        }
-                        this._doc.record(new ChangeViewInstrument(this._doc, channel.instruments.length - 1));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
-                    default:
-                        console.log("multi append");
-                        for (let insturm of file) {
-                            if (!this._validate_instrument_limit(channel)) {
-                                alert("Max instruments reached! Some instruments were not imported.");
-                                break;
-                            }
-                            this._doc.record(new ChangeAppendInstrument(this._doc, channel, insturm));
-                        }
-                        this._doc.record(new ChangeViewInstrument(this._doc, channel.instruments.length - 1));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
-                }
-            };
-            this._validate_instrument_limit = (channel) => {
-                if (this._doc.song.getMaxInstrumentsPerChannel() <= channel.instruments.length) {
-                    return false;
-                }
-                return true;
+            this._import_multiple = () => {
             };
             this._import_single = (file) => {
                 const channel = this._doc.song.channels[this._doc.channel];
-                const currentInstrum = channel.instruments[this._doc.getCurrentInstrument()];
-                switch (this._importStrategySelect.value) {
-                    case "replace":
-                        console.log("single replace");
-                        this._doc.record(new ChangePasteInstrument(this._doc, currentInstrum, file));
-                        this._doc.record(new ChangeViewInstrument(this._doc, this._doc.getCurrentInstrument()));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
-                    case "all":
-                        console.log("single all");
-                        channel.instruments.length = 1;
-                        const firstInstrum = channel.instruments[0];
-                        this._doc.record(new ChangePasteInstrument(this._doc, firstInstrum, file));
-                        this._doc.record(new ChangeViewInstrument(this._doc, 0));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
-                    default:
-                        if (!this._validate_instrument_limit(channel)) {
-                            alert("Max instruments reached! The instrument was not imported.");
-                            this._doc.prompt = null;
-                            return;
-                        }
-                        console.log("single append");
-                        this._doc.record(new ChangeAppendInstrument(this._doc, channel, file));
-                        this._doc.record(new ChangeViewInstrument(this._doc, channel.instruments.length - 1));
-                        this._doc.prompt = null;
-                        this._doc.notifier.changed();
-                        return;
+                if (this._replaceBox.checked) {
+                    return;
                 }
+                if (this._replaceSingleBox.checked) {
+                    const instrumentCopy = JSON.parse(String(file));
+                    const instrument = channel.instruments[this._doc.getCurrentInstrument()];
+                    this._doc.record(new ChangePasteInstrument(this._doc, instrument, instrumentCopy));
+                    return;
+                }
+                return;
             };
             this._fileInput.addEventListener("change", this._whenFileSelected);
             this._cancelButton.addEventListener("click", this._close);
+            this._replaceBox.addEventListener("change", this._lol);
             if ((_doc.song.patternInstruments || _doc.song.layeredInstruments) == false) {
-                this._importStrategySelect.disabled = true;
-                this._importStrategySelect.value = "replace";
+                this._replaceSingleBox.disabled = true;
+                this._replaceBox.disabled = true;
             }
         }
     }
@@ -21536,7 +21457,7 @@ li.select2-results__option[role=group] > strong:hover {
         return Math.pow(volumeMult, 0.25) * 127;
     }
 
-    const { button: button$6, div: div$6, h2: h2$6, input: input$4, select: select$2, option: option$2 } = HTML;
+    const { button: button$6, div: div$6, h2: h2$6, input: input$4, select: select$1, option: option$1 } = HTML;
     function lerp(low, high, t) {
         return low + t * (high - low);
     }
@@ -21569,7 +21490,7 @@ li.select2-results__option[role=group] > strong:hover {
             this._enableIntro = input$4({ type: "checkbox" });
             this._loopDropDown = input$4({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
             this._enableOutro = input$4({ type: "checkbox" });
-            this._formatSelect = select$2({ style: "width: 100%;" }, option$2({ value: "wav" }, "Export to .wav file."), option$2({ value: "mp3" }, "Export to .mp3 file."), option$2({ value: "midi" }, "Export to .mid file."), option$2({ value: "json" }, "Export to .json file."), option$2({ value: "html" }, "Export to .html file."));
+            this._formatSelect = select$1({ style: "width: 100%;" }, option$1({ value: "wav" }, "Export to .wav file."), option$1({ value: "mp3" }, "Export to .mp3 file."), option$1({ value: "midi" }, "Export to .mid file."), option$1({ value: "json" }, "Export to .json file."), option$1({ value: "html" }, "Export to .html file."));
             this._cancelButton = button$6({ class: "cancelButton" });
             this._exportButton = button$6({ class: "exportButton", style: "width:45%;" }, "Export");
             this._outputProgressBar = div$6({ style: `width: 0%; background: ${ColorConfig.loopAccent}; height: 100%; position: absolute; z-index: 2;` });
@@ -23580,21 +23501,21 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$8, label: label$2, div: div$8, form, h2: h2$8, input: input$6 } = HTML;
+    const { button: button$8, label: label$3, div: div$8, form, h2: h2$8, input: input$6 } = HTML;
     class LayoutPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._fileInput = input$6({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
             this._okayButton = button$8({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._cancelButton = button$8({ class: "cancelButton" });
-            this._form = form({ style: "display: flex; gap: 10px;" }, label$2({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "small" }), SVG(`\
+            this._form = form({ style: "display: flex; gap: 10px;" }, label$3({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "small" }), SVG(`\
 					<svg viewBox="-4 -1 28 22">
 						<rect x="0" y="0" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="11" height="10" fill="currentColor"/>
 						<rect x="14" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="11" height="5" fill="currentColor"/>
 					</svg>
-				`), div$8("Small")), label$2({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "long" }), SVG(`\
+				`), div$8("Small")), label$3({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "long" }), SVG(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="12" height="10" fill="currentColor"/>
@@ -23602,14 +23523,14 @@ You should be redirected to the song at:<br /><br />
 						<rect x="20" y="2" width="4" height="10" fill="currentColor"/>
 						<rect x="2" y="13" width="22" height="5" fill="currentColor"/>
 					</svg>
-				`), div$8("Long")), label$2({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "tall" }), SVG(`\
+				`), div$8("Long")), label$3({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "tall" }), SVG(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="11" y="2" width="8" height="16" fill="currentColor"/>
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="2" width="8" height="16" fill="currentColor"/>
 					</svg>
-				`), div$8("Tall")), label$2({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "wide" }), SVG(`\
+				`), div$8("Tall")), label$3({ class: "layout-option" }, input$6({ type: "radio", name: "layout", value: "wide" }), SVG(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="4" height="16" fill="currentColor"/>
@@ -24453,15 +24374,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$a, div: div$a, span: span$2, h2: h2$a, input: input$8, br: br$3, select: select$3, option: option$3 } = HTML;
+    const { button: button$a, div: div$a, span: span$2, h2: h2$a, input: input$8, br: br$4, select: select$2, option: option$2 } = HTML;
     class MoveNotesSidewaysPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._beatsStepper = input$8({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
-            this._conversionStrategySelect = select$3({ style: "width: 100%;" }, option$3({ value: "overflow" }, "Overflow notes across bars."), option$3({ value: "wrapAround" }, "Wrap notes around within bars."));
+            this._conversionStrategySelect = select$2({ style: "width: 100%;" }, option$2({ value: "overflow" }, "Overflow notes across bars."), option$2({ value: "wrapAround" }, "Wrap notes around within bars."));
             this._cancelButton = button$a({ class: "cancelButton" });
             this._okayButton = button$a({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$a({ class: "prompt noSelection", style: "width: 250px;" }, h2$a("Move Notes Sideways"), div$a({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$a({ style: "text-align: right;" }, "Beats to move:", br$3(), span$2({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$a({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$a({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$a({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$a({ class: "prompt noSelection", style: "width: 250px;" }, h2$a("Move Notes Sideways"), div$a({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$a({ style: "text-align: right;" }, "Beats to move:", br$4(), span$2({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$a({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$a({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$a({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -25525,22 +25446,9 @@ You should be redirected to the song at:<br /><br />
                     this._doc.notifier.notifyWatchers();
                 }
                 const playheadBar = Math.floor(this._doc.synth.playhead);
-                const noteFlashElements = this._svgNoteContainer.querySelectorAll('.note-flash');
                 if (this._doc.synth.playing && ((this._pattern != null && this._doc.song.getPattern(this._doc.channel, Math.floor(this._doc.synth.playhead)) == this._pattern) || Math.floor(this._doc.synth.playhead) == this._doc.bar + this._barOffset)) {
                     this._svgPlayhead.setAttribute("visibility", "visible");
                     const modPlayhead = this._doc.synth.playhead - playheadBar;
-                    for (var i = 0; i < noteFlashElements.length; i++) {
-                        var element = noteFlashElements[i];
-                        const noteStart = Number(element.getAttribute("note-start")) / (this._doc.song.beatsPerBar * Config.partsPerBeat);
-                        const noteEnd = Number(element.getAttribute("note-end")) / (this._doc.song.beatsPerBar * Config.partsPerBeat);
-                        if ((modPlayhead >= noteStart) && this._doc.prefs.notesFlashWhenPlayed) {
-                            const dist = noteEnd - noteStart;
-                            element.style.opacity = String((1 - (((modPlayhead - noteStart) - (dist / 2)) / (dist / 2))));
-                        }
-                        else {
-                            element.style.opacity = "0";
-                        }
-                    }
                     if (Math.abs(modPlayhead - this._playheadX) > 0.1) {
                         this._playheadX = modPlayhead;
                     }
@@ -25551,10 +25459,6 @@ You should be redirected to the song at:<br /><br />
                 }
                 else {
                     this._svgPlayhead.setAttribute("visibility", "hidden");
-                    for (var i = 0; i < noteFlashElements.length; i++) {
-                        var element = noteFlashElements[i];
-                        element.style.opacity = "0";
-                    }
                 }
                 if (this._doc.synth.playing && (this._doc.synth.recording || this._doc.prefs.autoFollow) && this._followPlayheadBar != playheadBar) {
                     new ChangeChannelBar(this._doc, this._doc.channel, playheadBar);
@@ -26763,23 +26667,11 @@ You should be redirected to the song at:<br /><br />
                         const octaveOffset = this._doc.getBaseVisibleOctave(channel) * Config.pitchesPerOctave;
                         for (const note of pattern2.notes) {
                             for (const pitch of note.pitches) {
-                                var notePath = SVG.path();
+                                const notePath = SVG.path();
                                 notePath.setAttribute("fill", ColorConfig.getChannelColor(this._doc.song, channel).secondaryNote);
                                 notePath.setAttribute("pointer-events", "none");
                                 this._drawNote(notePath, pitch, note.start, note.pins, this._pitchHeight * 0.19, false, octaveOffset);
                                 this._svgNoteContainer.appendChild(notePath);
-                                if (this._doc.prefs.notesFlashWhenPlayed) {
-                                    notePath = SVG.path();
-                                    const noteFlashColor = ColorConfig.getComputed("--note-flash-secondary") !== "" ? "var(--note-flash-secondary)" : "#ffffff77";
-                                    notePath.setAttribute("fill", noteFlashColor);
-                                    notePath.setAttribute("pointer-events", "none");
-                                    this._drawNote(notePath, pitch, note.start, note.pins, this._pitchHeight * 0.19, false, octaveOffset);
-                                    this._svgNoteContainer.appendChild(notePath);
-                                    notePath.classList.add('note-flash');
-                                    notePath.style.opacity = "0";
-                                    notePath.setAttribute('note-start', String(note.start));
-                                    notePath.setAttribute('note-end', String(note.end));
-                                }
                             }
                         }
                     }
@@ -26812,18 +26704,6 @@ You should be redirected to the song at:<br /><br />
                         notePath.setAttribute("pointer-events", "none");
                         this._drawNote(notePath, pitch, note.start, note.pins, (this._pitchHeight - this._pitchBorder) / 2 + 1, true, this._octaveOffset);
                         this._svgNoteContainer.appendChild(notePath);
-                        if (this._doc.prefs.notesFlashWhenPlayed && !disabled) {
-                            notePath = SVG.path();
-                            const noteFlashColor = ColorConfig.getComputed("--note-flash") !== "" ? "var(--note-flash)" : "#ffffff";
-                            notePath.setAttribute("fill", noteFlashColor);
-                            notePath.setAttribute("pointer-events", "none");
-                            this._drawNote(notePath, pitch, note.start, note.pins, (this._pitchHeight - this._pitchBorder) / 2 + 1, true, this._octaveOffset);
-                            this._svgNoteContainer.appendChild(notePath);
-                            notePath.classList.add('note-flash');
-                            notePath.style.opacity = "0";
-                            notePath.setAttribute('note-start', String(note.start));
-                            notePath.setAttribute('note-end', String(note.end));
-                        }
                         let indicatorOffset = 2;
                         if (note.continuesLastPattern) {
                             const arrowHeight = Math.min(this._pitchHeight, 20);
@@ -27432,15 +27312,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$b, div: div$b, span: span$3, h2: h2$b, input: input$9, br: br$4, select: select$4, option: option$4 } = HTML;
+    const { button: button$b, div: div$b, span: span$3, h2: h2$b, input: input$9, br: br$5, select: select$3, option: option$3 } = HTML;
     class SongDurationPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._barsStepper = input$9({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._positionSelect = select$4({ style: "width: 100%;" }, option$4({ value: "end" }, "Apply change at end of song."), option$4({ value: "beginning" }, "Apply change at beginning of song."));
+            this._positionSelect = select$3({ style: "width: 100%;" }, option$3({ value: "end" }, "Apply change at end of song."), option$3({ value: "beginning" }, "Apply change at beginning of song."));
             this._cancelButton = button$b({ class: "cancelButton" });
             this._okayButton = button$b({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$b({ class: "prompt noSelection", style: "width: 250px;" }, h2$b("Song Length"), div$b({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$b({ style: "display: inline-block; text-align: right;" }, "Bars per song:", br$4(), span$3({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Multiples of 4 are recommended)")), this._barsStepper), div$b({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$b({ class: "selectContainer", style: "width: 100%;" }, this._positionSelect)), div$b({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$b({ class: "prompt noSelection", style: "width: 250px;" }, h2$b("Song Length"), div$b({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$b({ style: "display: inline-block; text-align: right;" }, "Bars per song:", br$5(), span$3({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Multiples of 4 are recommended)")), this._barsStepper), div$b({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$b({ class: "selectContainer", style: "width: 100%;" }, this._positionSelect)), div$b({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -27620,7 +27500,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$c, div: div$c, h2: h2$c, p: p$2, select: select$5, option: option$5, iframe } = HTML;
+    const { button: button$c, div: div$c, h2: h2$c, p: p$2, select: select$4, option: option$4, iframe } = HTML;
     class SongRecoveryPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -27639,9 +27519,9 @@ You should be redirected to the song at:<br /><br />
                 this._songContainer.appendChild(p$2("There are no recovered songs available yet. Try making a song!"));
             }
             for (const song of songs) {
-                const versionMenu = select$5({ style: "width: 100%;" });
+                const versionMenu = select$4({ style: "width: 100%;" });
                 for (const version of song.versions) {
-                    versionMenu.appendChild(option$5({ value: version.time }, version.name + ": " + new Date(version.time).toLocaleString()));
+                    versionMenu.appendChild(option$4({ value: version.time }, version.name + ": " + new Date(version.time).toLocaleString()));
                 }
                 const player = iframe({ style: "width: 100%; height: 60px; border: none; display: block;" });
                 player.src = "player/#song=" + window.localStorage.getItem(versionToKey(song.versions[0]));
@@ -27656,12 +27536,12 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$d, label: label$3, div: div$d, p: p$3, a, h2: h2$d, input: input$a, select: select$6, option: option$6 } = HTML;
+    const { button: button$d, label: label$4, div: div$d, p: p$3, a, h2: h2$d, input: input$a, select: select$5, option: option$5 } = HTML;
     class RecordingSetupPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._keyboardMode = select$6({ style: "width: 100%;" }, option$6({ value: "useCapsLockForNotes" }, "simple shortcuts, use caps lock to play notes"), option$6({ value: "pressControlForShortcuts" }, "simple notes, press " + EditorConfig.ctrlName + " for shortcuts"));
-            this._keyboardLayout = select$6({ style: "width: 100%;" }, option$6({ value: "wickiHayden" }, "Wicki-Hayden"), option$6({ value: "songScale" }, "selected song scale"), option$6({ value: "pianoAtC" }, "piano starting at C :)"), option$6({ value: "pianoAtA" }, "piano starting at A :("), option$6({ value: "pianoTransposingC" }, "piano transposing C :) to song key"), option$6({ value: "pianoTransposingA" }, "piano transposing A :( to song key"));
+            this._keyboardMode = select$5({ style: "width: 100%;" }, option$5({ value: "useCapsLockForNotes" }, "simple shortcuts, use caps lock to play notes"), option$5({ value: "pressControlForShortcuts" }, "simple notes, press " + EditorConfig.ctrlName + " for shortcuts"));
+            this._keyboardLayout = select$5({ style: "width: 100%;" }, option$5({ value: "wickiHayden" }, "Wicki-Hayden"), option$5({ value: "songScale" }, "selected song scale"), option$5({ value: "pianoAtC" }, "piano starting at C :)"), option$5({ value: "pianoAtA" }, "piano starting at A :("), option$5({ value: "pianoTransposingC" }, "piano transposing C :) to song key"), option$5({ value: "pianoTransposingA" }, "piano transposing A :( to song key"));
             this._keyboardLayoutPreview = div$d({ style: "display: grid; row-gap: 4px; margin: 4px auto; font-size: 10px;" });
             this._enableMidi = input$a({ style: "width: 2em; margin-left: 1em;", type: "checkbox" });
             this._showRecordButton = input$a({ style: "width: 2em; margin-left: 1em;", type: "checkbox" });
@@ -27671,7 +27551,7 @@ You should be redirected to the song at:<br /><br />
             this._metronomeWhileRecording = input$a({ style: "width: 2em; margin-left: 1em;", type: "checkbox" });
             this._okayButton = button$d({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._cancelButton = button$d({ class: "cancelButton" });
-            this.container = div$d({ class: "prompt noSelection recordingSetupPrompt", style: "width: 333px; text-align: right; max-height: 90%;" }, h2$d("Note Recording Setup"), div$d({ style: "display: grid; overflow-y: auto; overflow-x: hidden; flex-shrink: 1;" }, p$3("BeepBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + EditorConfig.ctrlSymbol + "P)."), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Add ● record button next to ▶ play button:", this._showRecordButton), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Snap recorded notes to the song's rhythm:", this._snapRecordedNotesToRhythm), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Ignore notes not in the song's scale:", this._ignorePerformedNotesNotInScale), p$3("While recording, you can perform notes on your keyboard!"), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Keyboard layout:", div$d({ class: "selectContainer", style: "width: 65%; margin-left: 1em;" }, this._keyboardLayout)), this._keyboardLayoutPreview, p$3("When not recording, you can use the computer keyboard either for shortcuts (like C and V for copy and paste) or for performing notes, depending on this mode:"), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$d({ class: "selectContainer", style: "width: 100%;" }, this._keyboardMode)), p$3("Performing music takes practice! Try slowing the tempo and using this metronome to help you keep a rhythm."), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Hear metronome while recording:", this._metronomeWhileRecording), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Count-in 1 bar of metronome before recording:", this._metronomeCountIn), p$3("If you have a ", a({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in BeepBox! (Or you could buy ", a({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Enable MIDI performance:", this._enableMidi), p$3("Tip: Recorded notes often overlap such that one note ends after the next note already started. In BeepBox, these notes get split into two notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the \"transition type\" effect on the instrument and setting it to \"continue\"."), div$d({ style: `width: 100%; height: 80px; background: linear-gradient(rgba(0,0,0,0), ${ColorConfig.editorBackground}); position: sticky; bottom: 0; pointer-events: none;` })), label$3({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$d({ class: "prompt noSelection recordingSetupPrompt", style: "width: 333px; text-align: right; max-height: 90%;" }, h2$d("Note Recording Setup"), div$d({ style: "display: grid; overflow-y: auto; overflow-x: hidden; flex-shrink: 1;" }, p$3("BeepBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + EditorConfig.ctrlSymbol + "P)."), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Add ● record button next to ▶ play button:", this._showRecordButton), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Snap recorded notes to the song's rhythm:", this._snapRecordedNotesToRhythm), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Ignore notes not in the song's scale:", this._ignorePerformedNotesNotInScale), p$3("While recording, you can perform notes on your keyboard!"), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Keyboard layout:", div$d({ class: "selectContainer", style: "width: 65%; margin-left: 1em;" }, this._keyboardLayout)), this._keyboardLayoutPreview, p$3("When not recording, you can use the computer keyboard either for shortcuts (like C and V for copy and paste) or for performing notes, depending on this mode:"), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$d({ class: "selectContainer", style: "width: 100%;" }, this._keyboardMode)), p$3("Performing music takes practice! Try slowing the tempo and using this metronome to help you keep a rhythm."), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Hear metronome while recording:", this._metronomeWhileRecording), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Count-in 1 bar of metronome before recording:", this._metronomeCountIn), p$3("If you have a ", a({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in BeepBox! (Or you could buy ", a({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Enable MIDI performance:", this._enableMidi), p$3("Tip: Recorded notes often overlap such that one note ends after the next note already started. In BeepBox, these notes get split into two notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the \"transition type\" effect on the instrument and setting it to \"continue\"."), div$d({ style: `width: 100%; height: 80px; background: linear-gradient(rgba(0,0,0,0), ${ColorConfig.editorBackground}); position: sticky; bottom: 0; pointer-events: none;` })), label$4({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -27915,11 +27795,11 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$e, div: div$e, h2: h2$e, select: select$7, option: option$7 } = HTML;
+    const { button: button$e, div: div$e, h2: h2$e, select: select$6, option: option$6 } = HTML;
     class ThemePrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._themeSelect = select$7({ style: "width: 100%;" }, option$7({ value: "dark classic" }, "BeepBox Dark"), option$7({ value: "light classic" }, "BeepBox Light"), option$7({ value: "dark competition" }, "BeepBox Competition Dark"), option$7({ value: "jummbox classic" }, "JummBox Dark"), option$7({ value: "forest" }, "Forest"), option$7({ value: "canyon" }, "Canyon"), option$7({ value: "midnight" }, "Midnight"), option$7({ value: "beachcombing" }, "Beachcombing"), option$7({ value: "violet verdant" }, "Violet Verdant"), option$7({ value: "sunset" }, "Sunset"), option$7({ value: "autumn" }, "Autumn"), option$7({ value: "fruit" }, "Shadowfruit"), option$7({ value: "toxic" }, "Toxic"), option$7({ value: "roe" }, "Roe"), option$7({ value: "moonlight" }, "Moonlight"), option$7({ value: "portal" }, "Portal"), option$7({ value: "fusion" }, "Fusion"), option$7({ value: "inverse" }, "Inverse"), option$7({ value: "nebula" }, "Nebula"), option$7({ value: "roe light" }, "Roe Light"), option$7({ value: "energized" }, "Energized"), option$7({ value: "neapolitan" }, "Neapolitan"), option$7({ value: "mono" }, "Mono"), option$7({ value: "dogebox classic" }, "Dogebox Classic"), option$7({ value: "dogebox2" }, "Dogebox2"));
+            this._themeSelect = select$6({ style: "width: 100%;" }, option$6({ value: "dark classic" }, "BeepBox Dark"), option$6({ value: "light classic" }, "BeepBox Light"), option$6({ value: "dark competition" }, "BeepBox Competition Dark"), option$6({ value: "jummbox classic" }, "JummBox Dark"), option$6({ value: "forest" }, "Forest"), option$6({ value: "canyon" }, "Canyon"), option$6({ value: "midnight" }, "Midnight"), option$6({ value: "beachcombing" }, "Beachcombing"), option$6({ value: "violet verdant" }, "Violet Verdant"), option$6({ value: "sunset" }, "Sunset"), option$6({ value: "autumn" }, "Autumn"), option$6({ value: "fruit" }, "Shadowfruit"), option$6({ value: "toxic" }, "Toxic"), option$6({ value: "roe" }, "Roe"), option$6({ value: "moonlight" }, "Moonlight"), option$6({ value: "portal" }, "Portal"), option$6({ value: "fusion" }, "Fusion"), option$6({ value: "inverse" }, "Inverse"), option$6({ value: "nebula" }, "Nebula"), option$6({ value: "roe light" }, "Roe Light"), option$6({ value: "energized" }, "Energized"), option$6({ value: "neapolitan" }, "Neapolitan"), option$6({ value: "mono" }, "Mono"), option$6({ value: "dogebox classic" }, "Dogebox Classic"), option$6({ value: "dogebox2" }, "Dogebox2"));
             this._cancelButton = button$e({ class: "cancelButton" });
             this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
             this.container = div$e({ class: "prompt noSelection", style: "width: 220px;" }, h2$e("Set Theme"), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ class: "selectContainer", style: "width: 100%;" }, this._themeSelect)), div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
@@ -28809,41 +28689,41 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$g, div: div$g, input: input$b, select: select$8, span: span$4, optgroup, option: option$8, canvas } = HTML;
+    const { button: button$g, div: div$g, input: input$b, select: select$7, span: span$4, optgroup, option: option$7, canvas } = HTML;
     function buildOptions(menu, items) {
         for (let index = 0; index < items.length; index++) {
-            menu.appendChild(option$8({ value: index }, items[index]));
+            menu.appendChild(option$7({ value: index }, items[index]));
         }
         return menu;
     }
     function buildHeaderedOptions(header, menu, items) {
-        menu.appendChild(option$8({ selected: true, disabled: true, value: header }, header));
+        menu.appendChild(option$7({ selected: true, disabled: true, value: header }, header));
         for (const item of items) {
-            menu.appendChild(option$8({ value: item }, item));
+            menu.appendChild(option$7({ value: item }, item));
         }
         return menu;
     }
     function buildPresetOptions(isNoise, idSet) {
-        const menu = select$8({ id: idSet });
+        const menu = select$7({ id: idSet });
         if (isNoise) {
-            menu.appendChild(option$8({ value: 2 }, EditorConfig.valueToPreset(2).name));
-            menu.appendChild(option$8({ value: 3 }, EditorConfig.valueToPreset(3).name));
-            menu.appendChild(option$8({ value: 4 }, EditorConfig.valueToPreset(4).name));
-            menu.appendChild(option$8({ value: 1 }, EditorConfig.valueToPreset(1).name));
+            menu.appendChild(option$7({ value: 2 }, EditorConfig.valueToPreset(2).name));
+            menu.appendChild(option$7({ value: 3 }, EditorConfig.valueToPreset(3).name));
+            menu.appendChild(option$7({ value: 4 }, EditorConfig.valueToPreset(4).name));
+            menu.appendChild(option$7({ value: 1 }, EditorConfig.valueToPreset(1).name));
         }
         else {
-            menu.appendChild(option$8({ value: 0 }, EditorConfig.valueToPreset(0).name));
-            menu.appendChild(option$8({ value: 6 }, EditorConfig.valueToPreset(6).name));
-            menu.appendChild(option$8({ value: 5 }, EditorConfig.valueToPreset(5).name));
-            menu.appendChild(option$8({ value: 7 }, EditorConfig.valueToPreset(7).name));
-            menu.appendChild(option$8({ value: 3 }, EditorConfig.valueToPreset(3).name));
-            menu.appendChild(option$8({ value: 1 }, EditorConfig.valueToPreset(1).name));
-            menu.appendChild(option$8({ value: 8 }, EditorConfig.valueToPreset(8).name));
-            menu.appendChild(option$8({ value: 2 }, EditorConfig.valueToPreset(2).name));
+            menu.appendChild(option$7({ value: 0 }, EditorConfig.valueToPreset(0).name));
+            menu.appendChild(option$7({ value: 6 }, EditorConfig.valueToPreset(6).name));
+            menu.appendChild(option$7({ value: 5 }, EditorConfig.valueToPreset(5).name));
+            menu.appendChild(option$7({ value: 7 }, EditorConfig.valueToPreset(7).name));
+            menu.appendChild(option$7({ value: 3 }, EditorConfig.valueToPreset(3).name));
+            menu.appendChild(option$7({ value: 1 }, EditorConfig.valueToPreset(1).name));
+            menu.appendChild(option$7({ value: 8 }, EditorConfig.valueToPreset(8).name));
+            menu.appendChild(option$7({ value: 2 }, EditorConfig.valueToPreset(2).name));
         }
         const randomGroup = optgroup({ label: "Randomize ▾" });
-        randomGroup.appendChild(option$8({ value: "randomPreset" }, "Random Preset"));
-        randomGroup.appendChild(option$8({ value: "randomGenerated" }, "Random Generated"));
+        randomGroup.appendChild(option$7({ value: "randomPreset" }, "Random Preset"));
+        randomGroup.appendChild(option$7({ value: "randomGenerated" }, "Random Generated"));
         menu.appendChild(randomGroup);
         for (let categoryIndex = 1; categoryIndex < EditorConfig.presetCategories.length; categoryIndex++) {
             const category = EditorConfig.presetCategories[categoryIndex];
@@ -28852,7 +28732,7 @@ You should be redirected to the song at:<br /><br />
             for (let presetIndex = 0; presetIndex < category.presets.length; presetIndex++) {
                 const preset = category.presets[presetIndex];
                 if ((preset.isNoise == true) == isNoise) {
-                    group.appendChild(option$8({ value: (categoryIndex << 6) + presetIndex }, preset.name));
+                    group.appendChild(option$7({ value: (categoryIndex << 6) + presetIndex }, preset.name));
                     foundAny = true;
                 }
             }
@@ -29019,11 +28899,11 @@ You should be redirected to the song at:<br /><br />
             this._defs = SVG.defs({}, this._gradient);
             this._volumeBarContainer = SVG.svg({ style: `touch-action: none; overflow: visible; margin: auto; max-width: 20vw;`, width: "160px", height: "100%", preserveAspectRatio: "none", viewBox: "0 0 160 12" }, this._defs, this._outVolumeBarBg, this._outVolumeBar, this._outVolumeCap);
             this._volumeBarBox = div$g({ class: "playback-volume-bar", style: "height: 12px; align-self: center;" }, this._volumeBarContainer);
-            this._fileMenu = select$8({ style: "width: 100%;" }, option$8({ selected: true, disabled: true, hidden: false }, "File"), option$8({ value: "new" }, "+ New Blank Song"), option$8({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"), option$8({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"), option$8({ value: "copyUrl" }, "⎘ Copy Song URL"), option$8({ value: "shareUrl" }, "⤳ Share Song URL"), option$8({ value: "shortenUrl" }, "… Shorten Song URL"), option$8({ value: "viewPlayer" }, "▶ View in Song Player"), option$8({ value: "copyEmbed" }, "⎘ Copy HTML Embed Code"), option$8({ value: "songRecovery" }, "⚠ Recover Recent Song..."));
-            this._editMenu = select$8({ style: "width: 100%;" }, option$8({ selected: true, disabled: true, hidden: false }, "Edit"), option$8({ value: "undo" }, "Undo (Z)"), option$8({ value: "redo" }, "Redo (Y)"), option$8({ value: "copy" }, "Copy Pattern (C)"), option$8({ value: "pasteNotes" }, "Paste Pattern Notes (V)"), option$8({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"), option$8({ value: "insertBars" }, "Insert Bar (⏎)"), option$8({ value: "deleteBars" }, "Delete Selected Bars (⌫)"), option$8({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"), option$8({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"), option$8({ value: "selectChannel" }, "Select Channel (⇧A)"), option$8({ value: "selectAll" }, "Select All (A)"), option$8({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"), option$8({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"), option$8({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"), option$8({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"), option$8({ value: "beatsPerBar" }, "Change Beats Per Bar..."), option$8({ value: "barCount" }, "Change Song Length... (L)"), option$8({ value: "channelSettings" }, "Channel Settings... (Q)"), option$8({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"));
-            this._optionsMenu = select$8({ style: "width: 100%;" }, option$8({ selected: true, disabled: true, hidden: false }, "Preferences"), option$8({ value: "autoPlay" }, "Auto Play on Load"), option$8({ value: "autoFollow" }, "Keep Current Pattern Selected"), option$8({ value: "enableNotePreview" }, "Hear Preview of Added Notes"), option$8({ value: "showLetters" }, "Show Piano Keys"), option$8({ value: "showFifth" }, 'Highlight "Fifth" of Song Key'), option$8({ value: "notesOutsideScale" }, "Allow Adding Notes Not in Scale"), option$8({ value: "setDefaultScale" }, "Use Current Scale as Default"), option$8({ value: "showChannels" }, "Show Notes From All Channels"), option$8({ value: "showScrollBar" }, "Show Octave Scroll Bar"), option$8({ value: "alwaysFineNoteVol" }, "Always Fine Note Volume"), option$8({ value: "enableChannelMuting" }, "Enable Channel Muting"), option$8({ value: "displayBrowserUrl" }, "Display Song Data in URL"), option$8({ value: "displayVolumeBar" }, "Show Playback Volume"), option$8({ value: "notesFlashWhenPlayed" }, "Notes Flash When Played"), option$8({ value: "layout" }, "Set Layout..."), option$8({ value: "colorTheme" }, "Set Theme..."), option$8({ value: "recordingSetup" }, "Set Up Note Recording..."));
-            this._scaleSelect = buildOptions(select$8(), Config.scales.map(scale => scale.name));
-            this._keySelect = buildOptions(select$8(), Config.keys.map(key => key.name).reverse());
+            this._fileMenu = select$7({ style: "width: 100%;" }, option$7({ selected: true, disabled: true, hidden: false }, "File"), option$7({ value: "new" }, "+ New Blank Song"), option$7({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"), option$7({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"), option$7({ value: "copyUrl" }, "⎘ Copy Song URL"), option$7({ value: "shareUrl" }, "⤳ Share Song URL"), option$7({ value: "shortenUrl" }, "… Shorten Song URL"), option$7({ value: "viewPlayer" }, "▶ View in Song Player"), option$7({ value: "copyEmbed" }, "⎘ Copy HTML Embed Code"), option$7({ value: "songRecovery" }, "⚠ Recover Recent Song..."));
+            this._editMenu = select$7({ style: "width: 100%;" }, option$7({ selected: true, disabled: true, hidden: false }, "Edit"), option$7({ value: "undo" }, "Undo (Z)"), option$7({ value: "redo" }, "Redo (Y)"), option$7({ value: "copy" }, "Copy Pattern (C)"), option$7({ value: "pasteNotes" }, "Paste Pattern Notes (V)"), option$7({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"), option$7({ value: "insertBars" }, "Insert Bar (⏎)"), option$7({ value: "deleteBars" }, "Delete Selected Bars (⌫)"), option$7({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"), option$7({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"), option$7({ value: "selectChannel" }, "Select Channel (⇧A)"), option$7({ value: "selectAll" }, "Select All (A)"), option$7({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"), option$7({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"), option$7({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"), option$7({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"), option$7({ value: "beatsPerBar" }, "Change Beats Per Bar..."), option$7({ value: "barCount" }, "Change Song Length... (L)"), option$7({ value: "channelSettings" }, "Channel Settings... (Q)"), option$7({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"));
+            this._optionsMenu = select$7({ style: "width: 100%;" }, option$7({ selected: true, disabled: true, hidden: false }, "Preferences"), option$7({ value: "autoPlay" }, "Auto Play on Load"), option$7({ value: "autoFollow" }, "Keep Current Pattern Selected"), option$7({ value: "enableNotePreview" }, "Hear Preview of Added Notes"), option$7({ value: "showLetters" }, "Show Piano Keys"), option$7({ value: "showFifth" }, 'Highlight "Fifth" of Song Key'), option$7({ value: "notesOutsideScale" }, "Allow Adding Notes Not in Scale"), option$7({ value: "setDefaultScale" }, "Use Current Scale as Default"), option$7({ value: "showChannels" }, "Show Notes From All Channels"), option$7({ value: "showScrollBar" }, "Show Octave Scroll Bar"), option$7({ value: "alwaysFineNoteVol" }, "Always Fine Note Volume"), option$7({ value: "enableChannelMuting" }, "Enable Channel Muting"), option$7({ value: "displayBrowserUrl" }, "Display Song Data in URL"), option$7({ value: "displayVolumeBar" }, "Show Playback Volume"), option$7({ value: "layout" }, "Set Layout..."), option$7({ value: "colorTheme" }, "Set Theme..."), option$7({ value: "recordingSetup" }, "Set Up Note Recording..."));
+            this._scaleSelect = buildOptions(select$7(), Config.scales.map(scale => scale.name));
+            this._keySelect = buildOptions(select$7(), Config.keys.map(key => key.name).reverse());
             this._tempoSlider = new Slider(input$b({ style: "margin: 0; vertical-align: middle;", type: "range", min: "30", max: "320", value: "160", step: "1" }), this._doc, (oldValue, newValue) => new ChangeTempo(this._doc, oldValue, newValue), false);
             this._tempoStepper = input$b({ style: "width: 4em; font-size: 80%; margin-left: 0.4em; vertical-align: middle;", type: "number", step: "1" });
             this._chorusSlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.chorusRange - 1, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeChorus(this._doc, oldValue, newValue), false);
@@ -29034,10 +28914,10 @@ You should be redirected to the song at:<br /><br />
             this._echoSustainRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("echoSustain") }, "Echo:"), this._echoSustainSlider.container);
             this._echoDelaySlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.echoDelayRange - 1, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeEchoDelay(this._doc, oldValue, newValue), false);
             this._echoDelayRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("echoDelay") }, "Echo Delay:"), this._echoDelaySlider.container);
-            this._rhythmSelect = buildOptions(select$8(), Config.rhythms.map(rhythm => rhythm.name));
+            this._rhythmSelect = buildOptions(select$7(), Config.rhythms.map(rhythm => rhythm.name));
             this._pitchedPresetSelect = buildPresetOptions(false, "pitchPresetSelect");
             this._drumPresetSelect = buildPresetOptions(true, "drumPresetSelect");
-            this._algorithmSelect = buildOptions(select$8(), Config.algorithms.map(algorithm => algorithm.name));
+            this._algorithmSelect = buildOptions(select$7(), Config.algorithms.map(algorithm => algorithm.name));
             this._algorithmSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("algorithm") }, "Algorithm: "), div$g({ class: "selectContainer" }, this._algorithmSelect));
             this._instrumentButtons = [];
             this._instrumentAddButton = button$g({ type: "button", class: "add-instrument last-button" });
@@ -29055,19 +28935,19 @@ You should be redirected to the song at:<br /><br />
             this._panDelaySlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["pan delay"].maxRawVol, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangePanDelay(this._doc, oldValue, newValue), false);
             this._panDelayRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("panDelay") }, "Delay:"), this._panDelaySlider.container);
             this._panDropdownGroup = div$g({ class: "editor-controls", style: "display: none;" }, this._panDelayRow);
-            this._chipWaveSelect = buildOptions(select$8(), Config.chipWaves.map(wave => wave.name));
-            this._chipNoiseSelect = buildOptions(select$8(), Config.chipNoises.map(wave => wave.name));
+            this._chipWaveSelect = buildOptions(select$7(), Config.chipWaves.map(wave => wave.name));
+            this._chipNoiseSelect = buildOptions(select$7(), Config.chipNoises.map(wave => wave.name));
             this._chipWaveSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("chipWave") }, "Wave: "), div$g({ class: "selectContainer" }, this._chipWaveSelect));
             this._chipNoiseSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("chipNoise") }, "Noise: "), div$g({ class: "selectContainer" }, this._chipNoiseSelect));
             this._fadeInOutEditor = new FadeInOutEditor(this._doc);
             this._fadeInOutRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("fadeInOut") }, "Fade:"), this._fadeInOutEditor.container);
-            this._transitionSelect = buildOptions(select$8(), Config.transitions.map(transition => transition.name));
+            this._transitionSelect = buildOptions(select$7(), Config.transitions.map(transition => transition.name));
             this._transitionDropdown = button$g({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(3) }, "▼");
             this._transitionRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("transition") }, "Transition:"), this._transitionDropdown, div$g({ class: "selectContainer", style: "width: 52.5%;" }, this._transitionSelect));
             this._clicklessTransitionBox = input$b({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
             this._clicklessTransitionRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("clicklessTransition") }, "Clickless:"), this._clicklessTransitionBox);
             this._transitionDropdownGroup = div$g({ class: "editor-controls", style: "display: none;" }, this._clicklessTransitionRow);
-            this._effectsSelect = select$8(option$8({ selected: true, disabled: true, hidden: false }));
+            this._effectsSelect = select$7(option$7({ selected: true, disabled: true, hidden: false }));
             this._eqFilterSimpleButton = button$g({ style: "font-size: x-small; width: 50%; height: 40%", class: "no-underline", onclick: () => this._switchEQFilterType(true) }, "simple");
             this._eqFilterAdvancedButton = button$g({ style: "font-size: x-small; width: 50%; height: 40%", class: "last-button no-underline", onclick: () => this._switchEQFilterType(false) }, "advanced");
             this._eqFilterTypeRow = div$g({ class: "selectRow", style: "padding-top: 4px; margin-bottom: 0px;" }, span$4({ style: "font-size: x-small;", class: "tip", onclick: () => this._openPrompt("filterType") }, "EQ Filt.Type:"), div$g({ class: "instrument-bar" }, this._eqFilterSimpleButton, this._eqFilterAdvancedButton));
@@ -29108,9 +28988,9 @@ You should be redirected to the song at:<br /><br />
             this._bitcrusherFreqRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("bitcrusherFreq") }, "Freq Crush:"), this._bitcrusherFreqSlider.container);
             this._stringSustainSlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.stringSustainRange - 1, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeStringSustain(this._doc, oldValue, newValue), false);
             this._stringSustainRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("stringSustain") }, "Sustain:"), this._stringSustainSlider.container);
-            this._unisonSelect = buildOptions(select$8(), Config.unisons.map(unison => unison.name));
+            this._unisonSelect = buildOptions(select$7(), Config.unisons.map(unison => unison.name));
             this._unisonSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("unison") }, "Unison:"), div$g({ class: "selectContainer" }, this._unisonSelect));
-            this._chordSelect = buildOptions(select$8(), Config.chords.map(chord => chord.name));
+            this._chordSelect = buildOptions(select$7(), Config.chords.map(chord => chord.name));
             this._chordDropdown = button$g({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(2) }, "▼");
             this._chordSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("chords") }, "Chords:"), this._chordDropdown, div$g({ class: "selectContainer" }, this._chordSelect));
             this._arpeggioSpeedSlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["arp speed"].maxRawVol, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeArpeggioSpeed(this._doc, oldValue, newValue), false);
@@ -29118,7 +28998,7 @@ You should be redirected to the song at:<br /><br />
             this._twoNoteArpBox = input$b({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
             this._twoNoteArpRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("twoNoteArpeggio") }, "Fast Two-Note:"), this._twoNoteArpBox);
             this._chordDropdownGroup = div$g({ class: "editor-controls", style: "display: none;" }, this._arpeggioSpeedRow, this._twoNoteArpRow);
-            this._vibratoSelect = buildOptions(select$8(), Config.vibratos.map(vibrato => vibrato.name));
+            this._vibratoSelect = buildOptions(select$7(), Config.vibratos.map(vibrato => vibrato.name));
             this._vibratoDropdown = button$g({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(0) }, "▼");
             this._vibratoSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("vibrato") }, "Vibrato:"), this._vibratoDropdown, div$g({ class: "selectContainer", style: "width: 61.5%;" }, this._vibratoSelect));
             this._vibratoDepthSlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["vibrato depth"].maxRawVol, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeVibratoDepth(this._doc, oldValue, newValue), false);
@@ -29127,11 +29007,11 @@ You should be redirected to the song at:<br /><br />
             this._vibratoSpeedRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("vibratoSpeed") }, "Speed:"), this._vibratoSpeedSlider.container);
             this._vibratoDelaySlider = new Slider(input$b({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["vibrato delay"].maxRawVol, value: "0", step: "1" }), this._doc, (oldValue, newValue) => new ChangeVibratoDelay(this._doc, oldValue, newValue), false);
             this._vibratoDelayRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("vibratoDelay") }, "Delay:"), this._vibratoDelaySlider.container);
-            this._vibratoTypeSelect = buildOptions(select$8(), Config.vibratoTypes.map(vibrato => vibrato.name));
+            this._vibratoTypeSelect = buildOptions(select$7(), Config.vibratoTypes.map(vibrato => vibrato.name));
             this._vibratoTypeSelectRow = div$g({ class: "selectRow" }, span$4({ class: "tip", style: "margin-left:10px;", onclick: () => this._openPrompt("vibratoType") }, "Type:"), div$g({ class: "selectContainer", style: "width: 61.5%;" }, this._vibratoTypeSelect));
             this._vibratoDropdownGroup = div$g({ class: "editor-controls", style: "display: none;" }, this._vibratoDepthRow, this._vibratoSpeedRow, this._vibratoDelayRow, this._vibratoTypeSelectRow);
             this._phaseModGroup = div$g({ class: "editor-controls" });
-            this._feedbackTypeSelect = buildOptions(select$8(), Config.feedbacks.map(feedback => feedback.name));
+            this._feedbackTypeSelect = buildOptions(select$7(), Config.feedbacks.map(feedback => feedback.name));
             this._feedbackRow1 = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("feedbackType") }, "Feedback:"), div$g({ class: "selectContainer" }, this._feedbackTypeSelect));
             this._spectrumEditor = new SpectrumEditor(this._doc, null);
             this._spectrumRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("spectrum") }, "Spectrum:"), this._spectrumEditor.container);
@@ -29144,7 +29024,7 @@ You should be redirected to the song at:<br /><br />
             this._invertWaveRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("invertWave") }, "Invert Wave:"), this._invertWaveBox);
             this._upperNoteLimitInputBox = input$b({ style: "width: 4em; font-size: 80%; ", id: "upperNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
             this._upperNoteLimitRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("upperNoteLimit") }, "Upper Note Limit:"), this._upperNoteLimitInputBox);
-            this._lowerNoteLimitInputBox = input$b({ style: "width: 4em; font-size: 80%; ", id: "lowerNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+            this._lowerNoteLimitInputBox = input$b({ style: "width: 4em; font-size: 80%; ", id: "owerNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
             this._lowerNoteLimitRow = div$g({ class: "selectRow" }, span$4({ class: "tip", onclick: () => this._openPrompt("lowerNoteLimit") }, "Lower Note Limit:"), this._lowerNoteLimitInputBox);
             this._instrumentCopyButton = button$g({ style: "max-width:86px; width: 86px;", class: "copyButton" }, [
                 "Copy",
@@ -29172,7 +29052,7 @@ You should be redirected to the song at:<br /><br />
                 ]),
             ]);
             this._customWaveDrawCanvas = new CustomChipCanvas(canvas({ width: 128, height: 52, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" }), this._doc, (newArray) => new ChangeCustomWave(this._doc, newArray));
-            this._customWavePresetDrop = buildHeaderedOptions("Load Preset", select$8({ style: "width: 50%; height:1.5em; text-align: center; text-align-last: center;" }), Config.chipWaves.map(wave => wave.name));
+            this._customWavePresetDrop = buildHeaderedOptions("Load Preset", select$7({ style: "width: 50%; height:1.5em; text-align: center; text-align-last: center;" }), Config.chipWaves.map(wave => wave.name));
             this._customWaveZoom = button$g({ style: "margin-left:0.5em; height:1.5em; max-width: 20px;", onclick: () => this._openPrompt("customChipSettings") }, "+");
             this._customWaveDraw = div$g({ style: "height:80px; margin-top:10px; margin-bottom:5px" }, [
                 div$g({ style: "height:54px; display:flex; justify-content:center;" }, [this._customWaveDrawCanvas.canvas]),
@@ -29324,7 +29204,6 @@ You should be redirected to the song at:<br /><br />
                     (prefs.enableChannelMuting ? "✓ " : "　") + "Enable Channel Muting",
                     (prefs.displayBrowserUrl ? "✓ " : "　") + "Display Song Data in URL",
                     (prefs.displayVolumeBar ? "✓ " : "　") + "Show Playback Volume",
-                    (prefs.notesFlashWhenPlayed ? "✓ " : "　") + "Notes Flash When Played",
                     "　Set Layout...",
                     "　Set Theme...",
                     "　Set Up Note Recording...",
@@ -29341,7 +29220,7 @@ You should be redirected to the song at:<br /><br />
                 const activeElement = document.activeElement;
                 const colors = ColorConfig.getChannelColor(this._doc.song, this._doc.channel);
                 for (let i = this._effectsSelect.childElementCount - 1; i < Config.effectOrder.length; i++) {
-                    this._effectsSelect.appendChild(option$8({ value: i }));
+                    this._effectsSelect.appendChild(option$7({ value: i }));
                 }
                 this._effectsSelect.selectedIndex = -1;
                 for (let i = 0; i < Config.effectOrder.length; i++) {
@@ -30050,12 +29929,12 @@ You should be redirected to the song at:<br /><br />
                             }
                             buildOptions(this._modSetBoxes[mod], settingList);
                             if (unusedSettingList.length > 0) {
-                                this._modSetBoxes[mod].appendChild(option$8({ selected: false, disabled: true, value: "Add Effect" }, "Add Effect"));
+                                this._modSetBoxes[mod].appendChild(option$7({ selected: false, disabled: true, value: "Add Effect" }, "Add Effect"));
                                 buildOptions(this._modSetBoxes[mod], unusedSettingList);
                             }
                             let setIndex = settingList.indexOf(Config.modulators[instrument.modulators[mod]].name);
                             if (setIndex == -1) {
-                                this._modSetBoxes[mod].insertBefore(option$8({ value: Config.modulators[instrument.modulators[mod]].name, style: "color: red;" }, Config.modulators[instrument.modulators[mod]].name), this._modSetBoxes[mod].children[0]);
+                                this._modSetBoxes[mod].insertBefore(option$7({ value: Config.modulators[instrument.modulators[mod]].name, style: "color: red;" }, Config.modulators[instrument.modulators[mod]].name), this._modSetBoxes[mod].children[0]);
                                 this._modSetBoxes[mod].selectedIndex = 0;
                                 this._whenSetModSetting(mod, true);
                             }
@@ -30142,7 +30021,7 @@ You should be redirected to the song at:<br /><br />
                                     : "dot " + (Math.floor((instrument.modFilterTypes[mod] - 1) / 2) + 1) + " x";
                                 if (instrument.modFilterTypes[mod] == 0)
                                     useName = "morph";
-                                this._modFilterBoxes[mod].insertBefore(option$8({ value: useName, style: "color: red;" }, useName), this._modFilterBoxes[mod].children[0]);
+                                this._modFilterBoxes[mod].insertBefore(option$7({ value: useName, style: "color: red;" }, useName), this._modFilterBoxes[mod].children[0]);
                                 this._modFilterBoxes[mod].selectedIndex = 0;
                             }
                             else {
@@ -30315,12 +30194,6 @@ You should be redirected to the song at:<br /><br />
                     return;
                 }
                 if (document.activeElement == this._panSliderInputBox || document.activeElement == this._detuneSliderInputBox || document.activeElement == this._instrumentVolumeSliderInputBox) {
-                    if (event.keyCode == 13 || event.keyCode == 27) {
-                        this.mainLayer.focus();
-                    }
-                    return;
-                }
-                if (document.activeElement == this._upperNoteLimitInputBox || document.activeElement == this._lowerNoteLimitInputBox) {
                     if (event.keyCode == 13 || event.keyCode == 27) {
                         this.mainLayer.focus();
                     }
@@ -31256,9 +31129,6 @@ You should be redirected to the song at:<br /><br />
                     case "displayVolumeBar":
                         this._doc.prefs.displayVolumeBar = !this._doc.prefs.displayVolumeBar;
                         break;
-                    case "notesFlashWhenPlayed":
-                        this._doc.prefs.notesFlashWhenPlayed = !this._doc.prefs.notesFlashWhenPlayed;
-                        break;
                     case "layout":
                         this._openPrompt("layout");
                         break;
@@ -31310,19 +31180,19 @@ You should be redirected to the song at:<br /><br />
             if (!("share" in navigator)) {
                 this._fileMenu.removeChild(this._fileMenu.querySelector("[value='shareUrl']"));
             }
-            this._scaleSelect.appendChild(optgroup({ label: "Edit" }, option$8({ value: "forceScale" }, "Snap Notes To Scale")));
-            this._keySelect.appendChild(optgroup({ label: "Edit" }, option$8({ value: "detectKey" }, "Detect Key")));
-            this._rhythmSelect.appendChild(optgroup({ label: "Edit" }, option$8({ value: "forceRhythm" }, "Snap Notes To Rhythm")));
-            this._vibratoSelect.appendChild(option$8({ hidden: true, value: 5 }, "custom"));
+            this._scaleSelect.appendChild(optgroup({ label: "Edit" }, option$7({ value: "forceScale" }, "Snap Notes To Scale")));
+            this._keySelect.appendChild(optgroup({ label: "Edit" }, option$7({ value: "detectKey" }, "Detect Key")));
+            this._rhythmSelect.appendChild(optgroup({ label: "Edit" }, option$7({ value: "forceRhythm" }, "Snap Notes To Rhythm")));
+            this._vibratoSelect.appendChild(option$7({ hidden: true, value: 5 }, "custom"));
             this._showModSliders = new Array(Config.modulators.length);
             this._modSliderValues = new Array(Config.modulators.length);
             this._phaseModGroup.appendChild(div$g({ class: "selectRow", style: `color: ${ColorConfig.secondaryText}; height: 1em; margin-top: 0.5em;` }, div$g({ style: "margin-right: .1em; visibility: hidden;" }, 1 + "."), div$g({ style: "width: 3em; margin-right: .3em;", class: "tip", onclick: () => this._openPrompt("operatorFrequency") }, "Freq:"), div$g({ class: "tip", onclick: () => this._openPrompt("operatorVolume") }, "Volume:")));
             for (let i = 0; i < Config.operatorCount; i++) {
                 const operatorIndex = i;
                 const operatorNumber = div$g({ style: "margin-right: 0px; color: " + ColorConfig.secondaryText + ";" }, i + 1 + "");
-                const frequencySelect = buildOptions(select$8({ style: "width: 100%;", title: "Frequency" }), Config.operatorFrequencies.map(freq => freq.name));
+                const frequencySelect = buildOptions(select$7({ style: "width: 100%;", title: "Frequency" }), Config.operatorFrequencies.map(freq => freq.name));
                 const amplitudeSlider = new Slider(input$b({ type: "range", min: "0", max: Config.operatorAmplitudeMax, value: "0", step: "1", title: "Volume" }), this._doc, (oldValue, newValue) => new ChangeOperatorAmplitude(this._doc, operatorIndex, oldValue, newValue), false);
-                const waveformSelect = buildOptions(select$8({ style: "width: 100%;", title: "Waveform" }), Config.operatorWaves.map(wave => wave.name));
+                const waveformSelect = buildOptions(select$7({ style: "width: 100%;", title: "Waveform" }), Config.operatorWaves.map(wave => wave.name));
                 const waveformDropdown = button$g({ style: "margin-left:0em; margin-right: 2px; height:1.5em; width: 8px; max-width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(4, i) }, "▼");
                 const waveformDropdownHint = span$4({ class: "tip", style: "margin-left: 10px;", onclick: () => this._openPrompt("operatorWaveform") }, "Wave:");
                 const waveformPulsewidthSlider = new Slider(input$b({ style: "margin-left: 10px; width: 85%;", type: "range", min: "0", max: Config.pwmOperatorWaves.length - 1, value: "0", step: "1", title: "Pulse Width" }), this._doc, (oldValue, newValue) => new ChangeOperatorPulseWidth(this._doc, operatorIndex, oldValue, newValue), true);
@@ -31354,7 +31224,7 @@ You should be redirected to the song at:<br /><br />
                 const spectrumEditor = new SpectrumEditor(this._doc, drumIndex);
                 spectrumEditor.container.addEventListener("mousedown", this.refocusStage);
                 this._drumsetSpectrumEditors[i] = spectrumEditor;
-                const envelopeSelect = buildOptions(select$8({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopes.map(envelope => envelope.name));
+                const envelopeSelect = buildOptions(select$7({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopes.map(envelope => envelope.name));
                 this._drumsetEnvelopeSelects[i] = envelopeSelect;
                 envelopeSelect.addEventListener("change", () => {
                     this._doc.record(new ChangeDrumsetEnvelope(this._doc, drumIndex, envelopeSelect.selectedIndex));
@@ -31371,11 +31241,11 @@ You should be redirected to the song at:<br /><br />
             this._modFilterBoxes = [];
             this._modTargetIndicators = [];
             for (let mod = 0; mod < Config.modCount; mod++) {
-                let modChannelBox = select$8({ style: "width: 100%; color: currentColor; text-overflow:ellipsis;" });
-                let modInstrumentBox = select$8({ style: "width: 100%; color: currentColor;" });
+                let modChannelBox = select$7({ style: "width: 100%; color: currentColor; text-overflow:ellipsis;" });
+                let modInstrumentBox = select$7({ style: "width: 100%; color: currentColor;" });
                 let modNameRow = div$g({ class: "operatorRow", style: "height: 1em; margin-bottom: 0.65em;" }, div$g({ class: "tip", style: "width: 10%; max-width: 5.4em;", id: "modChannelText" + mod, onclick: () => this._openPrompt("modChannel") }, "Ch:"), div$g({ class: "selectContainer", style: 'width: 35%;' }, modChannelBox), div$g({ class: "tip", style: "width: 1.2em; margin-left: 0.8em;", id: "modInstrumentText" + mod, onclick: () => this._openPrompt("modInstrument") }, "Ins:"), div$g({ class: "selectContainer", style: "width: 10%;" }, modInstrumentBox));
-                let modSetBox = select$8();
-                let modFilterBox = select$8();
+                let modSetBox = select$7();
+                let modFilterBox = select$7();
                 let modSetRow = div$g({ class: "selectRow", id: "modSettingText" + mod, style: "margin-bottom: 0.9em; color: currentColor;" }, span$4({ class: "tip", onclick: () => this._openPrompt("modSet") }, "Setting: "), span$4({ class: "tip", style: "font-size:x-small;", onclick: () => this._openPrompt("modSetInfo" + mod) }, "?"), div$g({ class: "selectContainer" }, modSetBox));
                 let modFilterRow = div$g({ class: "selectRow", id: "modFilterText" + mod, style: "margin-bottom: 0.9em; color: currentColor;" }, span$4({ class: "tip", onclick: () => this._openPrompt("modFilter" + mod) }, "Target: "), div$g({ class: "selectContainer" }, modFilterBox));
                 let modTarget = SVG.svg({ style: "transform: translate(0px, 1px);", width: "1.5em", height: "1em", viewBox: "0 0 200 200" }, [
@@ -31490,8 +31360,8 @@ You should be redirected to the song at:<br /><br />
             this._clicklessTransitionBox.addEventListener("input", () => { this._doc.record(new ChangeClicklessTransition(this._doc, this._clicklessTransitionBox.checked)); });
             this._aliasingBox.addEventListener("input", () => { this._doc.record(new ChangeAliasing(this._doc, this._aliasingBox.checked)); });
             this._invertWaveBox.addEventListener("input", () => { this._doc.record(new ChangeInvertWave(this._doc, this._invertWaveBox.checked)); });
-            this._upperNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeUpperLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].upperNoteLimit, (Math.min(Config.maxPitch, Math.max(0.0, Math.round(+this._upperNoteLimitInputBox.value)))))); });
-            this._lowerNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeLowerLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].lowerNoteLimit, (Math.min(Config.maxPitch, Math.max(0.0, Math.round(+this._lowerNoteLimitInputBox.value)))))); });
+            this._upperNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeUpperLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].upperNoteLimit, (+this._upperNoteLimitInputBox.value))); });
+            this._lowerNoteLimitInputBox.addEventListener("input", () => { this._doc.record(new ChangeLowerLimit(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].lowerNoteLimit, (+this._lowerNoteLimitInputBox.value))); });
             this._promptContainer.addEventListener("click", (event) => {
                 if (event.target == this._promptContainer) {
                     this._doc.undo();
@@ -32999,7 +32869,6 @@ You should be redirected to the song at:<br /><br />
             this.ignorePerformedNotesNotInScale = window.localStorage.getItem("ignorePerformedNotesNotInScale") == "true";
             this.metronomeCountIn = window.localStorage.getItem("metronomeCountIn") != "false";
             this.metronomeWhileRecording = window.localStorage.getItem("metronomeWhileRecording") != "false";
-            this.notesFlashWhenPlayed = window.localStorage.getItem("notesFlashWhenPlayed") != "false";
             this.keyboardLayout = window.localStorage.getItem("keyboardLayout") || "wickiHayden";
             this.layout = window.localStorage.getItem("layout") || "small";
             this.colorTheme = window.localStorage.getItem("colorTheme") || "dogebox2";
@@ -33037,7 +32906,6 @@ You should be redirected to the song at:<br /><br />
             window.localStorage.setItem("ignorePerformedNotesNotInScale", this.ignorePerformedNotesNotInScale ? "true" : "false");
             window.localStorage.setItem("metronomeCountIn", this.metronomeCountIn ? "true" : "false");
             window.localStorage.setItem("metronomeWhileRecording", this.metronomeWhileRecording ? "true" : "false");
-            window.localStorage.setItem("notesFlashWhenPlayed", this.notesFlashWhenPlayed ? "true" : "false");
             window.localStorage.setItem("keyboardLayout", this.keyboardLayout);
             window.localStorage.setItem("layout", this.layout);
             window.localStorage.setItem("colorTheme", this.colorTheme);
